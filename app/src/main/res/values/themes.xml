@@ -1,9 +1,20 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.TimeTracking" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+<resources>
+    <style name="Theme.TimeTracking" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Colores principales -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:statusBarColor">@color/primary</item>
+
+        <!-- Texto -->
+        <item name="android:textColor">@color/text_primary</item>
+
+        <!-- Cards -->
+        <item name="materialCardViewStyle">@style/App.CardView</item>
     </style>
 
-    <style name="Theme.TimeTracking" parent="Base.Theme.TimeTracking" />
+    <style name="App.CardView" parent="Widget.MaterialComponents.CardView">
+        <item name="cardElevation">2dp</item>
+        <item name="cardCornerRadius">8dp</item>
+        <item name="cardBackgroundColor">@color/surface</item>
+    </style>
 </resources>
