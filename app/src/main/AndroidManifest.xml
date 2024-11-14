@@ -4,8 +4,16 @@
 
     <!-- Añadimos el permiso de Internet -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <!-- Para Android 13 y superior -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 
     <application
+        android:requestLegacyExternalStorage="true"
         android:name=".TimeTrackingApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

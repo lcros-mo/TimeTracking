@@ -9,17 +9,22 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.app.TimePickerDialog
+import android.content.pm.PackageManager
+import android.os.Build
 import android.view.Gravity
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.tabs.TabLayout
+import android.Manifest
 import com.timetracking.app.R
 import com.timetracking.app.TimeTrackingApp
 import com.timetracking.app.data.repository.TimeRecordRepository
 import com.timetracking.app.utils.DateUtils
+import com.timetracking.app.utils.PDFManager
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -154,9 +159,67 @@ class HistoryFragment : Fragment() {
 
     private fun setupExportButton(view: View) {
         view.findViewById<MaterialButton>(R.id.exportButton).setOnClickListener {
-            // TODO: Implementaremos la exportación más adelante
-            showToast("Exportación en desarrollo")
+            if (checkStoragePermission()) {
+                exportPDF()
+            } else {
+                requestStoragePermission()
+            }
         }
+    }
+
+    private fun checkStoragePermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            true // En Android 10 y superior no necesitamos permiso para escribir en Downloads
+        } else {
+            ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun requestStoragePermission() {
+        requestPermissions(
+            arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+            STORAGE_PERMISSION_CODE
+        )
+    }
+
+    private fun exportPDF() {
+        lifecycleScope.launch {
+            try {
+                val records = repository.getRecordsForWeek(currentWeekStart)
+                if (records.isNotEmpty()) {
+                    PDFManager(requireContext()).createOrUpdatePDF(records)
+                    showToast("Registro exportado en la carpeta Descargas")
+                } else {
+                    showToast("No hay registros para exportar en esta semana")
+                }
+            } catch (e: Exception) {
+                showToast("Error al exportar: ${e.message}")
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        when (requestCode) {
+            STORAGE_PERMISSION_CODE -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    exportPDF()
+                } else {
+                    showToast("Necesitamos permiso para guardar el PDF")
+                }
+            }
+            else -> super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        }
+    }
+
+    companion object {
+        private const val STORAGE_PERMISSION_CODE = 1001
     }
 
     private fun showToast(message: String) {
