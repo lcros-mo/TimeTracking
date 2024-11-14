@@ -10,7 +10,8 @@ data class TimeRecord(
     val id: Long = 0,
     val date: Date,
     val type: RecordType,
-    val note: String? = null
+    val note: String? = null,
+    val exported: Boolean = false
 )
 
 enum class RecordType {

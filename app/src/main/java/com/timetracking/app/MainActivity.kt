@@ -1,3 +1,4 @@
+// MainActivity.kt
 package com.timetracking.app
 
 import android.animation.ArgbEvaluator
@@ -5,17 +6,22 @@ import android.animation.ValueAnimator
 import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
+import android.view.View
 import android.view.animation.AnimationUtils
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.button.MaterialButton
 import com.timetracking.app.data.model.RecordType
+import com.timetracking.app.data.model.TimeRecord
 import com.timetracking.app.data.repository.TimeRecordRepository
+import com.timetracking.app.ui.history.HistoryFragment
+import com.timetracking.app.utils.DateUtils
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -25,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var repository: TimeRecordRepository
     private lateinit var googleSignInClient: GoogleSignInClient
     private var isCheckedIn = false
+    private var checkInTime: Date? = null
     private lateinit var checkButton: MaterialButton
     private lateinit var lastCheckText: TextView
     private lateinit var todayTimeText: TextView
@@ -39,7 +46,12 @@ class MainActivity : AppCompatActivity() {
         initializeViews()
         setupGoogleSignIn()
         setupButtons()
-        checkLastStatus()
+        loadLastState()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadLastState()
     }
 
     private fun initializeViews() {
@@ -56,7 +68,6 @@ class MainActivity : AppCompatActivity() {
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        // Obtener el nombre del usuario
         GoogleSignIn.getLastSignedInAccount(this)?.let { account ->
             userNameText.text = "Bienvenido/a, ${account.givenName}"
         }
@@ -80,16 +91,54 @@ class MainActivity : AppCompatActivity() {
 
         // Botón de historial
         findViewById<MaterialButton>(R.id.historyButton).setOnClickListener {
-            showToast("Próximamente: Historial de fichajes")
+            findViewById<ConstraintLayout>(R.id.mainContent).visibility = View.GONE
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.mainContainer, HistoryFragment())
+                .addToBackStack(null)
+                .commit()
         }
     }
 
-    private fun checkLastStatus() {
+    override fun onBackPressed() {
+        if (supportFragmentManager.backStackEntryCount > 0) {
+            findViewById<ConstraintLayout>(R.id.mainContent).visibility = View.VISIBLE
+            super.onBackPressed()
+        } else {
+            super.onBackPressed()
+        }
+    }
+
+    private fun loadLastState() {
         lifecycleScope.launch {
-            val lastRecord = repository.getLastRecord()
-            isCheckedIn = lastRecord?.type == RecordType.CHECK_IN
-            updateUI()
-            updateTodayTime()
+            try {
+                val lastRecord: TimeRecord? = repository.getLastRecord()
+
+                lastRecord?.let { record ->
+                    isCheckedIn = record.type == RecordType.CHECK_IN
+                    val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+                    val timeString = formatter.format(record.date)
+
+                    when (record.type) {
+                        RecordType.CHECK_IN -> {
+                            lastCheckText.text = "Último fichaje: Entrada a las $timeString"
+                            checkInTime = record.date
+                        }
+                        RecordType.CHECK_OUT -> {
+                            lastCheckText.text = "Último fichaje: Salida a las $timeString"
+                            checkInTime = null
+                        }
+                    }
+                } ?: run {
+                    lastCheckText.text = "Sin fichajes registrados"
+                    isCheckedIn = false
+                    checkInTime = null
+                }
+
+                updateUI()
+                updateTodayTime()
+            } catch (e: Exception) {
+                showToast("Error al cargar el último estado: ${e.message}")
+            }
         }
     }
 
@@ -109,6 +158,7 @@ class MainActivity : AppCompatActivity() {
                 repository.insertRecord(currentTime, RecordType.CHECK_OUT)
                 showToast("Salida registrada: $timeString")
                 lastCheckText.text = "Último fichaje: Salida a las $timeString"
+                checkInTime = null
             }
             updateTodayTime()
         }
@@ -118,11 +168,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateTodayTime() {
         lifecycleScope.launch {
-            val todayRecords = repository.getDayRecords(Date())
+            val todayRecords = repository.getDayRecords(DateUtils.clearSeconds(Date()))
             var totalMinutes = 0L
 
             // Asegurar que los registros están ordenados por fecha
-            val sortedRecords = todayRecords.sortedBy { it.date }
+            val sortedRecords = todayRecords.sortedBy { record -> record.date }
 
             var i = 0
             while (i < sortedRecords.size - 1) {

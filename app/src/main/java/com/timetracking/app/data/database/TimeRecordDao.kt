@@ -21,6 +21,17 @@ interface TimeRecordDao {
     @Query("SELECT * FROM time_records ORDER BY date DESC LIMIT 1")
     suspend fun getLastRecord(): TimeRecord?
 
-    @Query("SELECT * FROM time_records WHERE date >= :startOfDay AND date < :endOfDay ORDER BY date ASC")
-    suspend fun getRecordsForDay(startOfDay: Date, endOfDay: Date): List<TimeRecord>
+    @Query("""
+        SELECT * 
+        FROM time_records 
+        WHERE date >= :startDay AND date < :endDay 
+        ORDER BY date ASC
+    """)
+    suspend fun getDayRecords(startDay: Date, endDay: Date): List<TimeRecord>
+
+    @Query("SELECT * FROM time_records WHERE id = :recordId")
+    suspend fun getRecordById(recordId: Long): TimeRecord?
+
+    @Query("UPDATE time_records SET exported = 1 WHERE date >= :weekStart AND date < :weekEnd")
+    suspend fun markWeekAsExported(weekStart: Date, weekEnd: Date)
 }
