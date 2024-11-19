@@ -79,6 +79,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun showCustomToast(message: String) {
+        
         runOnUiThread {
             val toast = Toast.makeText(this, message, Toast.LENGTH_LONG)
             toast.setGravity(Gravity.CENTER, 0, 0)
