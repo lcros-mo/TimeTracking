@@ -1,21 +1,25 @@
+// app/src/main/java/com/timetracking/app/ui/history/adapter/TimeRecordBlockAdapter.kt
 package com.timetracking.app.ui.history.adapter
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.timetracking.app.R
 import com.timetracking.app.data.model.TimeRecord
+import com.timetracking.app.ui.history.TimeEditBottomSheet
 import com.timetracking.app.ui.history.model.TimeRecordBlock
 import java.text.SimpleDateFormat
 import java.util.*
 
 class TimeRecordBlockAdapter(
     private val onCheckInClick: (TimeRecord) -> Unit,
-    private val onCheckOutClick: (TimeRecord) -> Unit
+    private val onCheckOutClick: (TimeRecord) -> Unit,
+    private val onBlockUpdated: () -> Unit
 ) : ListAdapter<TimeRecordBlock, TimeRecordBlockAdapter.ViewHolder>(BlockDiffCallback()) {
 
     private val dateFormat = SimpleDateFormat("EEEE, d MMM", Locale.getDefault())
@@ -51,6 +55,14 @@ class TimeRecordBlockAdapter(
                 duration.text = "En curso"
             }
 
+            itemView.setOnLongClickListener {
+                (itemView.context as? FragmentActivity)?.let { activity ->
+                    TimeEditBottomSheet.newInstance(block, onBlockUpdated)
+                        .show(activity.supportFragmentManager, "timeEdit")
+                }
+                true
+            }
+
             checkInTime.setOnClickListener { onCheckInClick(block.checkIn) }
             checkOutTime.setOnClickListener {
                 block.checkOut?.let { onCheckOutClick(it) }
@@ -58,7 +70,7 @@ class TimeRecordBlockAdapter(
         }
     }
 
-    private class BlockDiffCallback : DiffUtil.ItemCallback<TimeRecordBlock>() {
+    class BlockDiffCallback : DiffUtil.ItemCallback<TimeRecordBlock>() {
         override fun areItemsTheSame(oldItem: TimeRecordBlock, newItem: TimeRecordBlock): Boolean {
             return oldItem.checkIn.id == newItem.checkIn.id
         }

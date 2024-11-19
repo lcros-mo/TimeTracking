@@ -67,6 +67,9 @@ class HistoryFragment : Fragment() {
             },
             onCheckOutClick = { record ->
                 showTimeEditDialog(record)
+            },
+            onBlockUpdated = {
+                loadCurrentWeek()
             }
         )
         recyclerView.adapter = adapter
