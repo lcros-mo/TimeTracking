@@ -1,4 +1,3 @@
-// app/src/main/java/com/timetracking/app/ui/history/adapter/TimeRecordBlockAdapter.kt
 package com.timetracking.app.ui.history.adapter
 
 import android.view.LayoutInflater
@@ -57,8 +56,14 @@ class TimeRecordBlockAdapter(
 
             itemView.setOnLongClickListener {
                 (itemView.context as? FragmentActivity)?.let { activity ->
-                    TimeEditBottomSheet.newInstance(block, onBlockUpdated)
-                        .show(activity.supportFragmentManager, "timeEdit")
+                    TimeEditBottomSheet.newInstance(
+                        block,
+                        object : TimeEditBottomSheet.Callback {  // Versión correcta
+                            override fun onTimeUpdated() {
+                                onBlockUpdated()
+                            }
+                        }
+                    ).show(activity.supportFragmentManager, "timeEdit")
                 }
                 true
             }

@@ -30,9 +30,9 @@
         android:layout_height="0dp"
         android:padding="8dp"
         android:clipToPadding="false"
+        android:layoutAnimation="@anim/layout_animation_fall_down"
         app:layout_constraintTop_toBottomOf="@id/weekTabs"
-        app:layout_constraintBottom_toTopOf="@id/exportButton"
-        tools:listitem="@layout/item_time_record"/>
+        app:layout_constraintBottom_toTopOf="@id/exportButton"/>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/exportButton"

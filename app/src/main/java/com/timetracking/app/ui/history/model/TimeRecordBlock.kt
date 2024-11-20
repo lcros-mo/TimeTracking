@@ -1,17 +1,21 @@
+// app/src/main/java/com/timetracking/app/ui/history/model/TimeRecordBlock.kt
 package com.timetracking.app.ui.history.model
 
+import android.os.Parcelable
 import com.timetracking.app.data.model.RecordType
 import com.timetracking.app.data.model.TimeRecord
+import kotlinx.parcelize.Parcelize
 import java.util.Date
 
+@Parcelize
 data class TimeRecordBlock(
     val date: Date,
     val checkIn: TimeRecord,
     val checkOut: TimeRecord?,
     val duration: Long = calculateDuration(checkIn, checkOut)
-) {
+) : Parcelable {
     companion object {
-        fun calculateDuration(checkIn: TimeRecord, checkOut: TimeRecord?): Long {
+        private fun calculateDuration(checkIn: TimeRecord, checkOut: TimeRecord?): Long {
             return if (checkOut != null) {
                 (checkOut.date.time - checkIn.date.time) / (1000 * 60)
             } else {
@@ -42,6 +46,7 @@ data class TimeRecordBlock(
 
                     i += if (checkOut != null) 2 else 1
                 } else {
+                    // Si encontramos una salida sin entrada, la ignoramos
                     i++
                 }
             }
@@ -49,5 +54,4 @@ data class TimeRecordBlock(
             return blocks
         }
     }
-
 }

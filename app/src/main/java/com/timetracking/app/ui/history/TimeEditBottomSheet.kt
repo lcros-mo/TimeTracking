@@ -1,8 +1,6 @@
 package com.timetracking.app.ui.history
 
 import android.app.TimePickerDialog
-import android.icu.text.SimpleDateFormat
-import android.icu.util.Calendar
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,26 +9,44 @@ import android.widget.TextView
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.timetracking.app.R
 import com.timetracking.app.TimeTrackingApp
 import com.timetracking.app.data.model.TimeRecord
 import com.timetracking.app.data.repository.TimeRecordRepository
 import com.timetracking.app.ui.history.model.TimeRecordBlock
 import kotlinx.coroutines.launch
-import java.util.Locale
+import java.text.SimpleDateFormat
+import java.util.*
 
 class TimeEditBottomSheet : BottomSheetDialogFragment() {
-    private var timeBlock: TimeRecordBlock? = null
-    private var onTimeUpdated: (() -> Unit)? = null
-    private lateinit var repository: TimeRecordRepository
+
+    interface Callback {
+        fun onTimeUpdated()
+    }
 
     companion object {
-        fun newInstance(block: TimeRecordBlock, onTimeUpdated: () -> Unit): TimeEditBottomSheet {
+        private const val ARG_BLOCK = "arg_block"
+
+        @Suppress("DEPRECATION")
+        fun newInstance(block: TimeRecordBlock, callback: Callback): TimeEditBottomSheet {
             return TimeEditBottomSheet().apply {
-                this.timeBlock = block
-                this.onTimeUpdated = onTimeUpdated
+                arguments = Bundle().apply {
+                    putParcelable(ARG_BLOCK, block)
+                }
+                timeEditCallback = callback
             }
         }
+    }
+
+    private var timeBlock: TimeRecordBlock? = null
+    private var timeEditCallback: Callback? = null
+    private lateinit var repository: TimeRecordRepository
+
+    @Suppress("DEPRECATION")
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        timeBlock = arguments?.getParcelable(ARG_BLOCK)
     }
 
     override fun onCreateView(
@@ -44,7 +60,9 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        repository = TimeRecordRepository((requireActivity().application as TimeTrackingApp).database.timeRecordDao())
+        repository = TimeRecordRepository(
+            (requireActivity().application as TimeTrackingApp).database.timeRecordDao()
+        )
 
         timeBlock?.let { block ->
             setupViews(view, block)
@@ -55,24 +73,54 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
         val dateFormat = SimpleDateFormat("EEEE, d MMM", Locale.getDefault())
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
-        view.findViewById<TextView>(R.id.dateTitle).text = dateFormat.format(block.date)
+        // Configurar título
+        view.findViewById<TextView>(R.id.dateTitle).apply {
+            text = dateFormat.format(block.date)
+        }
 
-        // Setup check-in time
-        view.findViewById<TextView>(R.id.checkInTime).text = timeFormat.format(block.checkIn.date)
+        // Obtener referencias a las tarjetas
+        val checkInCard = view.findViewById<MaterialCardView>(R.id.checkInCard)
+        val checkOutCard = view.findViewById<MaterialCardView>(R.id.checkOutCard)
+
+        // Inicialmente invisibles
+        checkInCard.alpha = 0f
+        checkOutCard.alpha = 0f
+
+        // Configurar check-in
+        view.findViewById<TextView>(R.id.checkInTime).apply {
+            text = timeFormat.format(block.checkIn.date)
+        }
         view.findViewById<MaterialButton>(R.id.editCheckInButton).setOnClickListener {
             showTimePickerDialog(block.checkIn)
         }
 
-        // Setup check-out time if exists
+        // Configurar check-out
         block.checkOut?.let { checkOut ->
-            view.findViewById<TextView>(R.id.checkOutTime).text = timeFormat.format(checkOut.date)
+            view.findViewById<TextView>(R.id.checkOutTime).apply {
+                text = timeFormat.format(checkOut.date)
+            }
             view.findViewById<MaterialButton>(R.id.editCheckOutButton).setOnClickListener {
                 showTimePickerDialog(checkOut)
             }
         } ?: run {
-            view.findViewById<TextView>(R.id.checkOutTime).text = "Pendiente"
+            view.findViewById<TextView>(R.id.checkOutTime).apply {
+                text = getString(R.string.pending)
+            }
             view.findViewById<MaterialButton>(R.id.editCheckOutButton).isEnabled = false
         }
+
+        // Animar las tarjetas
+        checkInCard.animate()
+            .alpha(1f)
+            .setDuration(500)
+            .setStartDelay(200)
+            .start()
+
+        checkOutCard.animate()
+            .alpha(1f)
+            .setDuration(500)
+            .setStartDelay(400)
+            .start()
     }
 
     private fun showTimePickerDialog(record: TimeRecord) {
@@ -83,7 +131,7 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
             { _, hourOfDay, minute ->
                 lifecycleScope.launch {
                     repository.updateRecordTime(record.id, hourOfDay, minute)
-                    onTimeUpdated?.invoke()
+                    timeEditCallback?.onTimeUpdated()
                     dismiss()
                 }
             },
