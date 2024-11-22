@@ -68,5 +68,9 @@ dependencies {
     implementation("androidx.room:room-ktx:$roomVersion")
     //PDF
     implementation("com.itextpdf:itext7-core:7.2.5")
+    // Para conexiones HTTP
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    // Para manejo de corrutinas
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
 
 }

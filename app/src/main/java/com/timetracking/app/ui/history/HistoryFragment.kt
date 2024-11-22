@@ -172,7 +172,7 @@ class HistoryFragment : Fragment() {
                     val records = repository.getRecordsForWeek(currentWeekStart)
                     if (records.isNotEmpty()) {
                         val blocks = TimeRecordBlock.createBlocks(records)
-                        PDFManager(requireContext()).createOrUpdatePDF(blocks)
+                        PDFManager(requireContext()).createAndUploadPDF(blocks)
                         showToast("Registro exportado en la carpeta Descargas")
                     } else {
                         showToast("No hay registros para exportar en esta semana")
