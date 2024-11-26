@@ -51,7 +51,6 @@ class PDFManager(private val context: Context) {
                 val pdfData = createPDFInMemory(blocks, account)
                 uploadToServer(fileName, pdfData)
             } catch (e: Exception) {
-                // Si falla la subida al servidor, guardamos localmente
                 val pdfData = createPDFInMemory(blocks, GoogleSignIn.getLastSignedInAccount(context))
                 saveLocally(pdfData)
                 throw e
