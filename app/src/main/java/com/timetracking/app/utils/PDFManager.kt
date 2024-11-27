@@ -33,13 +33,17 @@ class PDFManager(private val context: Context) {
         .connectTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        .hostnameVerifier { _, _ -> true }
+        .sslSocketFactory(
+            TrustAllCerts.createSSLSocketFactory(),
+            TrustAllCerts.trustManager
+        )
         .build()
 
     private fun generateFileName(account: GoogleSignInAccount?): String {
         val userName = account?.let {
             "${it.familyName}_${it.givenName}"
         } ?: "Usuario"
-
         return "RegistroHorario_$userName.pdf"
     }
 
@@ -64,7 +68,6 @@ class PDFManager(private val context: Context) {
         PdfWriter(outputStream).use { writer ->
             val pdf = PdfDocument(writer)
             Document(pdf).use { document ->
-                // Título
                 val userName = account?.let { "${it.familyName} ${it.givenName}" } ?: "Usuario"
                 document.add(
                     Paragraph("Registro Horario - $userName")
@@ -72,18 +75,15 @@ class PDFManager(private val context: Context) {
                         .setFontSize(16f)
                 )
 
-                // Fecha de generación
                 document.add(
                     Paragraph("Documento generado: ${dateFormat.format(Date())}")
                         .setTextAlignment(TextAlignment.RIGHT)
                         .setFontSize(10f)
                 )
 
-                // Tabla de registros
                 val table = createTable(blocks)
                 document.add(table)
 
-                // Total de horas
                 val totalMinutes = blocks.sumOf { it.duration }
                 val totalHours = totalMinutes / 60
                 val remainingMinutes = totalMinutes % 60
@@ -93,7 +93,6 @@ class PDFManager(private val context: Context) {
                 )
             }
         }
-
         return outputStream.toByteArray()
     }
 
@@ -101,13 +100,11 @@ class PDFManager(private val context: Context) {
         val table = Table(floatArrayOf(150f, 100f, 100f, 100f))
             .setTextAlignment(TextAlignment.CENTER)
 
-        // Cabeceras
         table.addHeaderCell("Fecha")
         table.addHeaderCell("Entrada")
         table.addHeaderCell("Salida")
         table.addHeaderCell("Duración")
 
-        // Añadir bloques
         blocks.forEach { block ->
             table.addCell(dateFormat.format(block.date))
             table.addCell(timeFormat.format(block.checkIn.date))
@@ -116,7 +113,6 @@ class PDFManager(private val context: Context) {
             val minutes = block.duration % 60
             table.addCell("${hours}h ${minutes}m")
         }
-
         return table
     }
 
