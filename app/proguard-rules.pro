@@ -60,3 +60,19 @@
 
 # Evitar optimización agresiva de ProGuard en respuestas API
 -keepattributes Exceptions
+
+# Reglas Retrofit específicas para arreglar el error ClassCastException
+-keep,allowobfuscation interface * {
+    @retrofit2.http.* <methods>;
+}
+# Preservar la firma genérica de Call y Response (R8 en modo completo elimina firmas de elementos no preservados)
+-keep,allowobfuscation,allowshrinking interface retrofit2.Call
+-keep,allowobfuscation,allowshrinking class retrofit2.Response
+
+# Preservar la interfaz AuthApi y modelos relacionados
+-keep class com.timetracking.app.network.AuthApi { *; }
+-keep class com.timetracking.app.network.AuthResponse { *; }
+-keep class com.timetracking.app.network.User { *; }
+
+# Proteger BuildConfig para acceso a API_KEY
+-keep class com.timetracking.app.BuildConfig { *; }
