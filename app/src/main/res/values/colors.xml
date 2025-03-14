@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colores base -->
+    <color name="primary">#2196F3</color>         <!-- Azul principal -->
+    <color name="background">#FFFFFF</color>      <!-- Fondo blanco -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+    <color name="surface">#F5F5F5</color>         <!-- Gris muy claro para cards -->
+    <color name="text_primary">#212121</color>    <!-- Texto casi negro -->
+    <color name="text_secondary">#757575</color>  <!-- Texto gris -->
+
+    <!-- Colores específicos para el botón de fichaje -->
+    <color name="button_entry">#4CAF50</color>    <!-- Verde para entrada -->
+    <color name="button_exit">#F44336</color>     <!-- Rojo para salida -->
+    <color name="button_text">#FFFFFF</color>     <!-- Texto blanco para botones -->
+</resources>
