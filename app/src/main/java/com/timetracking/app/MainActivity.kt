@@ -31,7 +31,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var repository: TimeRecordRepository
     private lateinit var googleSignInClient: GoogleSignInClient
-    private var isCheckedIn = false
     private var checkInTime: Date? = null
     private lateinit var checkButton: MaterialButton
     private lateinit var lastCheckText: TextView
@@ -55,8 +54,6 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadLastState()
-        updateTodayTime()
-        updateWeeklyTime()
     }
 
     private fun initializeViews() {
@@ -122,7 +119,6 @@ class MainActivity : AppCompatActivity() {
                 val lastRecord: TimeRecord? = repository.getLastRecord()
 
                 lastRecord?.let { record ->
-                    isCheckedIn = record.type == RecordType.CHECK_IN
                     val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
                     val timeString = formatter.format(record.date)
 
@@ -130,20 +126,25 @@ class MainActivity : AppCompatActivity() {
                         RecordType.CHECK_IN -> {
                             lastCheckText.text = "Último fichaje: Entrada a las $timeString"
                             checkInTime = record.date
+                            // El siguiente registro debe ser una salida
+                            updateButtonState(true) // true = está checkeado, mostrará "SALIDA"
                         }
                         RecordType.CHECK_OUT -> {
                             lastCheckText.text = "Último fichaje: Salida a las $timeString"
                             checkInTime = null
+                            // El siguiente registro debe ser una entrada
+                            updateButtonState(false) // false = no está checkeado, mostrará "ENTRADA"
                         }
                     }
                 } ?: run {
                     lastCheckText.text = "Sin fichajes registrados"
-                    isCheckedIn = false
                     checkInTime = null
+                    // Sin registros previos, el primer registro debe ser una entrada
+                    updateButtonState(false)
                 }
 
-                updateUI()
                 updateTodayTime()
+                updateWeeklyTime()
             } catch (e: Exception) {
                 showToast("Error al cargar el último estado: ${e.message}")
             }
@@ -155,23 +156,35 @@ class MainActivity : AppCompatActivity() {
         val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
         val timeString = formatter.format(currentTime)
 
-        isCheckedIn = !isCheckedIn
-
         lifecycleScope.launch {
-            if (isCheckedIn) {
-                repository.insertRecord(currentTime, RecordType.CHECK_IN)
-                showToast("Entrada registrada: $timeString")
-                lastCheckText.text = "Último fichaje: Entrada a las $timeString"
-            } else {
-                repository.insertRecord(currentTime, RecordType.CHECK_OUT)
-                showToast("Salida registrada: $timeString")
-                lastCheckText.text = "Último fichaje: Salida a las $timeString"
-                checkInTime = null
-            }
-            updateTodayTime()
-        }
+            try {
+                val lastRecord: TimeRecord? = repository.getLastRecord()
 
-        updateUI()
+                // Determinar si el próximo registro debe ser una entrada o salida
+                val shouldBeCheckIn = lastRecord?.type == RecordType.CHECK_OUT || lastRecord == null
+                val shouldBeCheckOut = lastRecord?.type == RecordType.CHECK_IN
+
+                // Registrar según el estado actual
+                if (shouldBeCheckIn) {
+                    repository.insertRecord(currentTime, RecordType.CHECK_IN)
+                    showToast("Entrada registrada: $timeString")
+                    lastCheckText.text = "Último fichaje: Entrada a las $timeString"
+                    checkInTime = currentTime
+                    updateButtonState(true) // Ahora el botón debe mostrar "SALIDA"
+                } else if (shouldBeCheckOut) {
+                    repository.insertRecord(currentTime, RecordType.CHECK_OUT)
+                    showToast("Salida registrada: $timeString")
+                    lastCheckText.text = "Último fichaje: Salida a las $timeString"
+                    checkInTime = null
+                    updateButtonState(false) // Ahora el botón debe mostrar "ENTRADA"
+                }
+
+                updateTodayTime()
+                updateWeeklyTime()
+            } catch (e: Exception) {
+                showToast("Error al procesar el fichaje: ${e.message}")
+            }
+        }
     }
 
     private fun updateTodayTime() {
@@ -230,21 +243,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateUI() {
+    private fun updateButtonState(isCheckedIn: Boolean) {
         val anim = AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
-
         checkButton.startAnimation(anim)
+
         checkButton.text = if (isCheckedIn) "SALIDA" else "ENTRADA"
 
-        val colorFrom = if (isCheckedIn)
-            getColor(R.color.button_entry)
-        else
-            getColor(R.color.button_exit)
-
-        val colorTo = if (isCheckedIn)
-            getColor(R.color.button_exit)
-        else
-            getColor(R.color.button_entry)
+        val colorFrom = getColor(if (isCheckedIn) R.color.button_entry else R.color.button_exit)
+        val colorTo = getColor(if (isCheckedIn) R.color.button_exit else R.color.button_entry)
 
         val colorAnimation = ValueAnimator.ofObject(
             ArgbEvaluator(),
