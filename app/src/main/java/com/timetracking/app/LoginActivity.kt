@@ -8,7 +8,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.google.android.gms.common.SignInButton
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.gson.GsonBuilder
 import com.timetracking.app.network.AuthApi
@@ -43,7 +43,7 @@ class LoginActivity : AppCompatActivity() {
         }
 
         // Configurar el botón de inicio de sesión
-        val signInButton = findViewById<SignInButton>(R.id.signInButton)
+        val signInButton = findViewById<MaterialButton>(R.id.signInButton)
         signInButton.setOnClickListener {
             showLoginDialog()
         }

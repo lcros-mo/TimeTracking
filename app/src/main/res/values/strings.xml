@@ -1,6 +1,13 @@
 <resources>
-    <string name="app_name">TimeTracking</string>
+    <string name="app_name">Grec App</string>
     <string name="default_web_client_id">550314087094-9vbcinkfsbi8rklg525mapshis2tadr4.apps.googleusercontent.com</string>
     <string name="pending">Pendiente</string>
+    <string name="delete_record">Eliminar registro</string>
+    <string name="delete_confirmation">¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.</string>
+    <string name="delete">Eliminar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="add_record">Añadir registro</string>
+    <string name="record_added">Registro añadido correctamente</string>
+    <string name="record_deleted">Registro eliminado correctamente</string>
 
 </resources>

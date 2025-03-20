@@ -4,6 +4,8 @@
         <item name="colorPrimary">@color/primary</item>
         <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary</item>
+        <item name="colorOnPrimary">@color/button_text</item>
 
         <!-- Texto -->
         <item name="android:textColor">@color/text_primary</item>

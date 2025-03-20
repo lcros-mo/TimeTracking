@@ -8,7 +8,6 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/mainContent"
-
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
@@ -81,14 +80,14 @@
             app:cornerRadius="90dp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
-            app:layout_constraintBottom_toTopOf="@id/todaySummaryCard"
+            app:layout_constraintBottom_toTopOf="@id/timeSummaryCard"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/statusCard" />
 
-        <!-- Resumen del día -->
+        <!-- Card combinado para resumen diario y semanal -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/todaySummaryCard"
+            android:id="@+id/timeSummaryCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
@@ -97,27 +96,64 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:orientation="horizontal"
                 android:padding="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <!-- Resumen diario (izquierda) -->
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Hoy"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="14sp" />
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/todayTimeText"
-                    android:layout_width="wrap_content"
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Hoy"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/todayTimeText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="0h 0m"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <!-- Línea separadora vertical -->
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginHorizontal="16dp"
+                    android:background="@color/surface" />
+
+                <!-- Resumen semanal (derecha) -->
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="0h 0m"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp" />
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Esta semana"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/weeklyTimeText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="0h 0m"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                </LinearLayout>
             </LinearLayout>
-
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.button.MaterialButton
@@ -128,6 +164,6 @@
             android:text="Ver Historial"
             app:layout_constraintBottom_toBottomOf="parent" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </FrameLayout>

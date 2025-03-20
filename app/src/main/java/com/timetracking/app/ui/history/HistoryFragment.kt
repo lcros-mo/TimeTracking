@@ -1,8 +1,9 @@
+// app/src/main/java/com/timetracking/app/ui/history/HistoryFragment.kt
+
 package com.timetracking.app.ui.history
 
 import android.app.TimePickerDialog
 import android.os.Bundle
-import android.os.Environment
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -14,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.tabs.TabLayout
 import com.timetracking.app.R
 import com.timetracking.app.TimeTrackingApp
@@ -50,6 +52,7 @@ class HistoryFragment : Fragment() {
         setupRecyclerView(view)
         setupTabs(view)
         setupExportButton(view)
+        setupAddRecordButton(view)
         loadCurrentWeek()
     }
 
@@ -70,6 +73,10 @@ class HistoryFragment : Fragment() {
             },
             onBlockUpdated = {
                 loadCurrentWeek()
+            },
+            onRecordDeleted = {
+                loadCurrentWeek()
+                showToast("Registro eliminado correctamente")
             }
         )
         recyclerView.adapter = adapter
@@ -181,6 +188,19 @@ class HistoryFragment : Fragment() {
                     showToast("Error al exportar: ${e.message}")
                 }
             }
+        }
+    }
+
+    private fun setupAddRecordButton(view: View) {
+        view.findViewById<FloatingActionButton>(R.id.addRecordButton).setOnClickListener {
+            AddRecordDialog.newInstance(
+                object : AddRecordDialog.Callback {
+                    override fun onRecordAdded() {
+                        loadCurrentWeek()
+                        showToast("Registro añadido correctamente")
+                    }
+                }
+            ).show(childFragmentManager, "addRecord")
         }
     }
 

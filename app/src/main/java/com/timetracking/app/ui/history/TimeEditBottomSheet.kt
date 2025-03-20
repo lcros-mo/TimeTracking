@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
@@ -23,6 +24,7 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
 
     interface Callback {
         fun onTimeUpdated()
+        fun onRecordDeleted()
     }
 
     companion object {
@@ -121,6 +123,9 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
             .setDuration(500)
             .setStartDelay(400)
             .start()
+        view.findViewById<MaterialButton>(R.id.deleteButton).setOnClickListener {
+            showDeleteConfirmation(block)
+        }
     }
 
     private fun showTimePickerDialog(record: TimeRecord) {
@@ -139,5 +144,23 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
             calendar.get(Calendar.MINUTE),
             true
         ).show()
+    }
+
+    private fun showDeleteConfirmation(block: TimeRecordBlock) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Eliminar registro")
+            .setMessage("¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.")
+            .setPositiveButton("Eliminar") { _, _ ->
+                lifecycleScope.launch {
+                    if (block.checkOut != null) {
+                        repository.deleteRecord(block.checkOut.id)
+                    }
+                    repository.deleteRecord(block.checkIn.id)
+                    timeEditCallback?.onRecordDeleted()
+                    dismiss()
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 }

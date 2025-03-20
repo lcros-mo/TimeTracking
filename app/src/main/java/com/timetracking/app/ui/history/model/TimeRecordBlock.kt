@@ -1,11 +1,12 @@
-// app/src/main/java/com/timetracking/app/ui/history/model/TimeRecordBlock.kt
 package com.timetracking.app.ui.history.model
 
 import android.os.Parcelable
 import com.timetracking.app.data.model.RecordType
 import com.timetracking.app.data.model.TimeRecord
+import com.timetracking.app.utils.DateUtils
 import kotlinx.parcelize.Parcelize
 import java.util.Date
+import java.util.Calendar
 
 @Parcelize
 data class TimeRecordBlock(
@@ -27,31 +28,56 @@ data class TimeRecordBlock(
             val sortedRecords = records.sortedBy { it.date }
             val blocks = mutableListOf<TimeRecordBlock>()
 
+            // Mapa para almacenar entradas sin salida correspondiente
+            val pendingCheckIns = mutableMapOf<Long, TimeRecord>()
+
+            // Primera pasada: emparejar entradas y salidas por pares lógicos, no por día
             var i = 0
             while (i < sortedRecords.size) {
                 val current = sortedRecords[i]
 
                 if (current.type == RecordType.CHECK_IN) {
-                    // Buscar la siguiente salida
-                    val checkOut = if (i + 1 < sortedRecords.size &&
-                        sortedRecords[i + 1].type == RecordType.CHECK_OUT) {
-                        sortedRecords[i + 1]
-                    } else null
+                    // Buscar la siguiente salida (incluso si es de otro día)
+                    var matchingCheckOut: TimeRecord? = null
+                    var j = i + 1
 
-                    blocks.add(TimeRecordBlock(
-                        date = current.date,
-                        checkIn = current,
-                        checkOut = checkOut
-                    ))
+                    while (j < sortedRecords.size) {
+                        if (sortedRecords[j].type == RecordType.CHECK_OUT) {
+                            matchingCheckOut = sortedRecords[j]
+                            break
+                        }
+                        j++
+                    }
 
-                    i += if (checkOut != null) 2 else 1
+                    if (matchingCheckOut != null) {
+                        blocks.add(TimeRecordBlock(
+                            date = DateUtils.truncateToDay(current.date),
+                            checkIn = current,
+                            checkOut = matchingCheckOut
+                        ))
+                        i = j + 1 // Avanzar a después del checkout encontrado
+                    } else {
+                        // No hay checkout - registro pendiente
+                        blocks.add(TimeRecordBlock(
+                            date = DateUtils.truncateToDay(current.date),
+                            checkIn = current,
+                            checkOut = null
+                        ))
+                        i++
+                    }
                 } else {
-                    // Si encontramos una salida sin entrada, la ignoramos
+                    // Si encontramos una salida sin entrada, podría ser un error o una salida huérfana
+                    // La añadimos como entrada especial para que sea visible
+                    blocks.add(TimeRecordBlock(
+                        date = DateUtils.truncateToDay(current.date),
+                        checkIn = current, // Usamos la salida como entrada para que sea visible
+                        checkOut = null
+                    ))
                     i++
                 }
             }
 
-            return blocks
+            return blocks.sortedByDescending { it.date }
         }
     }
 }

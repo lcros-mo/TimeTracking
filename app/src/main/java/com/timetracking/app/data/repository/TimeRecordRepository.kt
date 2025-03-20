@@ -54,4 +54,10 @@ class TimeRecordRepository(private val timeRecordDao: TimeRecordDao) {
         val endDate = DateUtils.getEndOfWeek(weekStart)
         timeRecordDao.markWeekAsExported(startDate, endDate)
     }
+
+    suspend fun deleteRecord(recordId: Long) {
+        timeRecordDao.getRecordById(recordId)?.let { record ->
+            timeRecordDao.delete(record)
+        }
+    }
 }

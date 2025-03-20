@@ -18,7 +18,8 @@ import java.util.*
 class TimeRecordBlockAdapter(
     private val onCheckInClick: (TimeRecord) -> Unit,
     private val onCheckOutClick: (TimeRecord) -> Unit,
-    private val onBlockUpdated: () -> Unit
+    private val onBlockUpdated: () -> Unit,
+    private val onRecordDeleted: () -> Unit  // Nuevo parámetro añadido
 ) : ListAdapter<TimeRecordBlock, TimeRecordBlockAdapter.ViewHolder>(BlockDiffCallback()) {
 
     private val dateFormat = SimpleDateFormat("EEEE, d MMM", Locale.getDefault())
@@ -58,9 +59,13 @@ class TimeRecordBlockAdapter(
                 (itemView.context as? FragmentActivity)?.let { activity ->
                     TimeEditBottomSheet.newInstance(
                         block,
-                        object : TimeEditBottomSheet.Callback {  // Versión correcta
+                        object : TimeEditBottomSheet.Callback {
                             override fun onTimeUpdated() {
                                 onBlockUpdated()
+                            }
+
+                            override fun onRecordDeleted() {
+                                onRecordDeleted() // Llama al callback de eliminación
                             }
                         }
                     ).show(activity.supportFragmentManager, "timeEdit")

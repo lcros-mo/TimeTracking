@@ -21,6 +21,7 @@ import com.timetracking.app.data.model.RecordType
 import com.timetracking.app.data.model.TimeRecord
 import com.timetracking.app.data.repository.TimeRecordRepository
 import com.timetracking.app.ui.history.HistoryFragment
+import com.timetracking.app.ui.history.model.TimeRecordBlock
 import com.timetracking.app.utils.DateUtils
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -36,6 +37,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var lastCheckText: TextView
     private lateinit var todayTimeText: TextView
     private lateinit var userNameText: TextView
+    private lateinit var weeklyTimeText: TextView
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +55,8 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadLastState()
+        updateTodayTime()
+        updateWeeklyTime()
     }
 
     private fun initializeViews() {
@@ -59,6 +64,7 @@ class MainActivity : AppCompatActivity() {
         lastCheckText = findViewById(R.id.lastCheckText)
         todayTimeText = findViewById(R.id.todayTimeText)
         userNameText = findViewById(R.id.userNameText)
+        weeklyTimeText = findViewById(R.id.weeklyTimeText)
     }
 
     private fun setupGoogleSignIn() {
@@ -199,6 +205,28 @@ class MainActivity : AppCompatActivity() {
             val hours = totalMinutes / 60
             val minutes = totalMinutes % 60
             todayTimeText.text = String.format("%dh %dm", hours, minutes)
+        }
+    }
+
+    private fun updateWeeklyTime() {
+        lifecycleScope.launch {
+            try {
+                val weekStart = DateUtils.getStartOfWeek(Date())
+                val records = repository.getRecordsForWeek(weekStart)
+
+                // Crear bloques para calcular duración correctamente
+                val blocks = TimeRecordBlock.createBlocks(records)
+
+                // Sumar todas las duraciones de los bloques
+                val totalMinutes = blocks.sumOf { it.duration }
+
+                val hours = totalMinutes / 60
+                val minutes = totalMinutes % 60
+
+                weeklyTimeText.text = String.format("%dh %dm", hours, minutes)
+            } catch (e: Exception) {
+                weeklyTimeText.text = "Error al calcular"
+            }
         }
     }
 
