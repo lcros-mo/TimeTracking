@@ -1,6 +1,5 @@
-package com.timetracking.app.data.database
+package com.timetracking.app.core.data.db
 
-// Converters.kt
 import androidx.room.TypeConverter
 import java.util.Date
 

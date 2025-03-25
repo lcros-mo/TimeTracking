@@ -1,4 +1,4 @@
-package com.timetracking.app.utils
+package com.timetracking.app.core.utils
 
 import android.content.Context
 import android.os.Environment
@@ -10,7 +10,7 @@ import com.itextpdf.layout.Document
 import com.itextpdf.layout.element.Paragraph
 import com.itextpdf.layout.element.Table
 import com.itextpdf.layout.properties.TextAlignment
-import com.timetracking.app.ui.history.model.TimeRecordBlock
+import com.timetracking.app.core.data.model.TimeRecordBlock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -24,6 +24,14 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+
+// Mantener la dirección del servidor para compatibilidad
+object ServerConfig {
+    private const val SERVER_IP = "80.32.125.224"
+    private const val SERVER_PORT = 5000
+    const val SERVER_URL = "https://$SERVER_IP:$SERVER_PORT/upload"
+    const val PDF_DIRECTORY = "D:\\Administracio\\GEST ADM PERSONAL\\2024 GEST PERS\\24 REG HORES ADM\\A_PRUEBA_REGISTROS_APP"
+}
 
 class PDFManager(private val context: Context) {
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())

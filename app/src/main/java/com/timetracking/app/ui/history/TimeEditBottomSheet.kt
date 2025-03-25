@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -13,9 +14,9 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.timetracking.app.R
 import com.timetracking.app.TimeTrackingApp
-import com.timetracking.app.data.model.TimeRecord
-import com.timetracking.app.data.repository.TimeRecordRepository
-import com.timetracking.app.ui.history.model.TimeRecordBlock
+import com.timetracking.app.core.data.model.TimeRecord
+import com.timetracking.app.core.data.repository.TimeRecordRepository
+import com.timetracking.app.core.data.model.TimeRecordBlock
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -24,7 +25,7 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
 
     interface Callback {
         fun onTimeUpdated()
-        fun onRecordDeleted()
+        fun onRecordDeleted(recordId: Long)
     }
 
     companion object {
@@ -123,7 +124,9 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
             .setDuration(500)
             .setStartDelay(400)
             .start()
-        view.findViewById<MaterialButton>(R.id.deleteButton).setOnClickListener {
+
+        // Añadir botón de eliminación
+        view.findViewById<MaterialButton>(R.id.deleteButton)?.setOnClickListener {
             showDeleteConfirmation(block)
         }
     }
@@ -152,12 +155,16 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
             .setMessage("¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.")
             .setPositiveButton("Eliminar") { _, _ ->
                 lifecycleScope.launch {
-                    if (block.checkOut != null) {
-                        repository.deleteRecord(block.checkOut.id)
+                    try {
+                        if (block.checkOut != null) {
+                            repository.deleteRecord(block.checkOut.id)
+                        }
+                        repository.deleteRecord(block.checkIn.id)
+                        timeEditCallback?.onRecordDeleted(block.checkIn.id)
+                        dismiss()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Error al eliminar: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
-                    repository.deleteRecord(block.checkIn.id)
-                    timeEditCallback?.onRecordDeleted()
-                    dismiss()
                 }
             }
             .setNegativeButton("Cancelar", null)

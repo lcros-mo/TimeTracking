@@ -70,9 +70,9 @@
 -keep,allowobfuscation,allowshrinking class retrofit2.Response
 
 # Preservar la interfaz AuthApi y modelos relacionados
--keep class com.timetracking.app.network.AuthApi { *; }
--keep class com.timetracking.app.network.AuthResponse { *; }
--keep class com.timetracking.app.network.User { *; }
+-keep class com.timetracking.app.core.network.AuthApi { *; }
+-keep class com.timetracking.app.core.network.AuthResponse { *; }
+-keep class com.timetracking.app.core.network.User { *; }
 
 # Proteger BuildConfig para acceso a API_KEY
 -keep class com.timetracking.app.BuildConfig { *; }

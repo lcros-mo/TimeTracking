@@ -1,4 +1,4 @@
-package com.timetracking.app.network
+package com.timetracking.app.core.network
 
 import com.google.gson.annotations.SerializedName
 import retrofit2.Response
@@ -25,4 +25,3 @@ data class User(
     @SerializedName("email") val email: String,
     @SerializedName("name") val name: String
 )
-

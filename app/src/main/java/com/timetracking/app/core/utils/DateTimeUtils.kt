@@ -1,9 +1,9 @@
-package com.timetracking.app.utils
+package com.timetracking.app.core.utils
 
 import java.util.Calendar
 import java.util.Date
 
-object DateUtils {
+object DateTimeUtils {
     fun clearSeconds(date: Date): Date {
         val calendar = Calendar.getInstance()
         calendar.time = date
@@ -48,6 +48,20 @@ object DateUtils {
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
+        return calendar.time
+    }
+
+    /**
+     * Añade un número de días a una fecha
+     *
+     * @param date Fecha base
+     * @param days Número de días a añadir (puede ser negativo para restar días)
+     * @return Nueva fecha con los días añadidos
+     */
+    fun addDays(date: Date, days: Int): Date {
+        val calendar = Calendar.getInstance()
+        calendar.time = date
+        calendar.add(Calendar.DAY_OF_MONTH, days)
         return calendar.time
     }
 }

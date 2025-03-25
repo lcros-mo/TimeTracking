@@ -1,7 +1,7 @@
-package com.timetracking.app.data.database
+package com.timetracking.app.core.data.db
 
 import androidx.room.*
-import com.timetracking.app.data.model.TimeRecord
+import com.timetracking.app.core.data.model.TimeRecord
 import java.util.Date
 
 @Dao
@@ -10,7 +10,7 @@ interface TimeRecordDao {
     suspend fun getAllRecords(): List<TimeRecord>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(record: TimeRecord)
+    suspend fun insert(record: TimeRecord): Long
 
     @Update
     suspend fun update(record: TimeRecord)

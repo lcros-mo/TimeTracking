@@ -13,8 +13,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.timetracking.app.R
 import com.timetracking.app.TimeTrackingApp
-import com.timetracking.app.data.model.RecordType
-import com.timetracking.app.data.repository.TimeRecordRepository
+import com.timetracking.app.core.data.model.RecordType
+import com.timetracking.app.core.data.repository.TimeRecordRepository
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*

@@ -1,5 +1,4 @@
-// app/src/main/java/com/timetracking/app/data/model/TimeRecord.kt
-package com.timetracking.app.data.model
+package com.timetracking.app.core.data.model
 
 import android.os.Parcelable
 import androidx.room.Entity
@@ -17,8 +16,3 @@ data class TimeRecord(
     val note: String? = null,
     val exported: Boolean = false
 ) : Parcelable
-
-enum class RecordType {
-    CHECK_IN,
-    CHECK_OUT
-}

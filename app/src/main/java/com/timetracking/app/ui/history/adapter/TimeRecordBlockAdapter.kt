@@ -9,17 +9,16 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.timetracking.app.R
-import com.timetracking.app.data.model.TimeRecord
+import com.timetracking.app.core.data.model.TimeRecord
 import com.timetracking.app.ui.history.TimeEditBottomSheet
-import com.timetracking.app.ui.history.model.TimeRecordBlock
+import com.timetracking.app.core.data.model.TimeRecordBlock
 import java.text.SimpleDateFormat
 import java.util.*
 
 class TimeRecordBlockAdapter(
     private val onCheckInClick: (TimeRecord) -> Unit,
     private val onCheckOutClick: (TimeRecord) -> Unit,
-    private val onBlockUpdated: () -> Unit,
-    private val onRecordDeleted: () -> Unit  // Nuevo parámetro añadido
+    private val onBlockUpdated: () -> Unit
 ) : ListAdapter<TimeRecordBlock, TimeRecordBlockAdapter.ViewHolder>(BlockDiffCallback()) {
 
     private val dateFormat = SimpleDateFormat("EEEE, d MMM", Locale.getDefault())
@@ -40,6 +39,7 @@ class TimeRecordBlockAdapter(
         private val checkInTime: TextView = view.findViewById(R.id.checkInTime)
         private val checkOutTime: TextView = view.findViewById(R.id.checkOutTime)
         private val duration: TextView = view.findViewById(R.id.duration)
+        private val exportStatus: TextView = view.findViewById(R.id.exportStatus)
 
         fun bind(block: TimeRecordBlock) {
             dateText.text = dateFormat.format(block.date)
@@ -55,27 +55,39 @@ class TimeRecordBlockAdapter(
                 duration.text = "En curso"
             }
 
-            itemView.setOnLongClickListener {
-                (itemView.context as? FragmentActivity)?.let { activity ->
-                    TimeEditBottomSheet.newInstance(
-                        block,
-                        object : TimeEditBottomSheet.Callback {
-                            override fun onTimeUpdated() {
-                                onBlockUpdated()
-                            }
+            // Mostrar estado de exportación
+            exportStatus.visibility = if (block.checkIn.exported) View.VISIBLE else View.GONE
 
-                            override fun onRecordDeleted() {
-                                onRecordDeleted() // Llama al callback de eliminación
+            // Desactivar interacciones si está exportado
+            if (block.checkIn.exported) {
+                itemView.isClickable = false
+                itemView.isFocusable = false
+                checkInTime.isClickable = false
+                checkOutTime.isClickable = false
+            } else {
+                // Donde está la creación del callback, en el método bind:
+                itemView.setOnLongClickListener {
+                    (itemView.context as? FragmentActivity)?.let { activity ->
+                        TimeEditBottomSheet.newInstance(
+                            block,
+                            object : TimeEditBottomSheet.Callback {
+                                override fun onTimeUpdated() {
+                                    onBlockUpdated()
+                                }
+
+                                override fun onRecordDeleted(recordId: Long) {
+                                    onBlockUpdated() // Cuando se elimina un registro, actualizamos la vista
+                                }
                             }
-                        }
-                    ).show(activity.supportFragmentManager, "timeEdit")
+                        ).show(activity.supportFragmentManager, "timeEdit")
+                    }
+                    true
                 }
-                true
-            }
 
-            checkInTime.setOnClickListener { onCheckInClick(block.checkIn) }
-            checkOutTime.setOnClickListener {
-                block.checkOut?.let { onCheckOutClick(it) }
+                checkInTime.setOnClickListener { onCheckInClick(block.checkIn) }
+                checkOutTime.setOnClickListener {
+                    block.checkOut?.let { onCheckOutClick(it) }
+                }
             }
         }
     }

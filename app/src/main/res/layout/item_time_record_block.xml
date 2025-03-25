@@ -82,6 +82,17 @@
             app:layout_constraintTop_toBottomOf="@id/checkInLayout"
             tools:text="Duración: 5h 0m"/>
 
+        <TextView
+            android:id="@+id/exportStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Exportado"
+            android:textColor="#4CAF50"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/checkInLayout" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>

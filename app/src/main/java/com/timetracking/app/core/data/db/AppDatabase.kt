@@ -1,11 +1,13 @@
-package com.timetracking.app.data.database
+package com.timetracking.app.core.data.db
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.timetracking.app.data.model.TimeRecord
+import com.timetracking.app.core.data.db.Converters
+import com.timetracking.app.core.data.db.TimeRecordDao
+import com.timetracking.app.core.data.model.TimeRecord
 
 @Database(
     entities = [TimeRecord::class],

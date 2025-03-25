@@ -85,15 +85,16 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <TextView
+    <!-- Este es el TextView que necesitas para solucionar el error -->
+    <!-- <TextView
         android:id="@+id/versionText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Versión 1.5.2"
+        android:text="Versión 1.5.5"
         android:textSize="12sp"
         android:textColor="@color/text_secondary"
         android:layout_margin="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent" /> -->
 
 </androidx.constraintlayout.widget.ConstraintLayout>

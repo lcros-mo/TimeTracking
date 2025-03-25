@@ -34,7 +34,7 @@
 
         <!-- LoginActivity como launcher -->
         <activity
-            android:name="com.timetracking.app.LoginActivity"
+            android:name="com.timetracking.app.ui.auth.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -44,7 +44,7 @@
 
         <!-- MainActivity sin intent-filter -->
         <activity
-            android:name="com.timetracking.app.MainActivity"
+            android:name="com.timetracking.app.ui.home.MainActivity"
             android:exported="true">
         </activity>
 
