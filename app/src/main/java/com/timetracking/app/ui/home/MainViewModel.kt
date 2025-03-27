@@ -8,6 +8,7 @@ import com.timetracking.app.core.data.model.RecordType
 import com.timetracking.app.core.data.model.TimeRecord
 import com.timetracking.app.core.data.repository.TimeRecordRepository
 import com.timetracking.app.core.utils.DateTimeUtils
+import com.timetracking.app.core.utils.TimeRecordValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,34 +68,28 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
     fun loadLastState() {
         viewModelScope.launch {
             try {
+                val todayRecords = repository.getDayRecords(DateTimeUtils.truncateToDay(Date()))
                 val record = repository.getLastRecord()
                 _lastRecord.value = record
 
-                // Actualizar el estado de la UI basado en el último registro
-                record?.let {
-                    when (it.type) {
-                        RecordType.CHECK_IN -> {
-                            _uiState.value = _uiState.value.copy(
-                                isCheckedIn = true,
-                                checkInTime = it.date,
-                                lastCheckText = "Último fichaje: Entrada a las ${formatTime(it.date)}"
-                            )
-                        }
-                        RecordType.CHECK_OUT -> {
-                            _uiState.value = _uiState.value.copy(
-                                isCheckedIn = false,
-                                checkInTime = null,
-                                lastCheckText = "Último fichaje: Salida a las ${formatTime(it.date)}"
-                            )
-                        }
-                    }
-                } ?: run {
+                // Verificar estado basado en registros
+                if (todayRecords.isEmpty()) {
                     _uiState.value = _uiState.value.copy(
                         isCheckedIn = false,
                         checkInTime = null,
                         lastCheckText = "Sin fichajes registrados"
                     )
+                    return@launch
                 }
+
+                val sortedRecords = todayRecords.sortedBy { it.date }
+                val lastRecord = sortedRecords.last()
+
+                _uiState.value = _uiState.value.copy(
+                    isCheckedIn = lastRecord.type == RecordType.CHECK_IN,
+                    checkInTime = if (lastRecord.type == RecordType.CHECK_IN) lastRecord.date else null,
+                    lastCheckText = "Último fichaje: ${if (lastRecord.type == RecordType.CHECK_IN) "Entrada" else "Salida"} a las ${formatTime(lastRecord.date)}"
+                )
 
                 updateTodayTime()
                 updateWeeklyTime()
@@ -114,26 +109,55 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
 
         viewModelScope.launch {
             try {
-                val lastRecord = repository.getLastRecord()
+                // Obtener todos los registros del día
+                val todayRecords = repository.getDayRecords(DateTimeUtils.truncateToDay(Date()))
 
-                // Determinar si debe ser entrada o salida
-                val shouldBeCheckIn = lastRecord?.type == RecordType.CHECK_OUT || lastRecord == null
-                val shouldBeCheckOut = lastRecord?.type == RecordType.CHECK_IN
+                // Validar la acción a realizar
+                val (isValid, recordType, errorMessage) = TimeRecordValidator.validateNextAction(todayRecords)
 
-                if (shouldBeCheckIn) {
-                    repository.insertRecord(currentTime, RecordType.CHECK_IN)
-                    _uiState.value = _uiState.value.copy(
-                        isCheckedIn = true,
-                        checkInTime = currentTime,
-                        lastCheckText = "Último fichaje: Entrada a las ${formatTime(currentTime)}"
-                    )
-                } else if (shouldBeCheckOut) {
-                    repository.insertRecord(currentTime, RecordType.CHECK_OUT)
-                    _uiState.value = _uiState.value.copy(
-                        isCheckedIn = false,
-                        checkInTime = null,
-                        lastCheckText = "Último fichaje: Salida a las ${formatTime(currentTime)}"
-                    )
+                if (!isValid) {
+                    _uiState.value = _uiState.value.copy(error = errorMessage)
+                    return@launch
+                }
+
+                when (recordType) {
+                    RecordType.CHECK_IN -> {
+                        repository.insertRecord(currentTime, RecordType.CHECK_IN)
+                        _uiState.value = _uiState.value.copy(
+                            isCheckedIn = true,
+                            checkInTime = currentTime,
+                            lastCheckText = "Último fichaje: Entrada a las ${formatTime(currentTime)}"
+                        )
+                    }
+                    RecordType.CHECK_OUT -> {
+                        // Validar que la salida sea posterior a la entrada
+                        val lastCheckIn = todayRecords.filter { it.type == RecordType.CHECK_IN }
+                            .maxByOrNull { it.date }
+
+                        if (lastCheckIn != null) {
+                            val (timeValid, timeErrorMsg) = TimeRecordValidator.validateCheckOutTime(
+                                lastCheckIn.date, currentTime
+                            )
+
+                            if (!timeValid) {
+                                _uiState.value = _uiState.value.copy(error = timeErrorMsg)
+                                return@launch
+                            }
+                        }
+
+                        repository.insertRecord(currentTime, RecordType.CHECK_OUT)
+                        _uiState.value = _uiState.value.copy(
+                            isCheckedIn = false,
+                            checkInTime = null,
+                            lastCheckText = "Último fichaje: Salida a las ${formatTime(currentTime)}"
+                        )
+                    }
+                    null -> {
+                        _uiState.value = _uiState.value.copy(
+                            error = "No se puede determinar la acción a realizar"
+                        )
+                        return@launch
+                    }
                 }
 
                 updateTodayTime()

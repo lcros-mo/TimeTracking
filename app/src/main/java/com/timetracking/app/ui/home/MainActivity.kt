@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private var isProcessingClick = false
 
     private val viewModel: MainViewModel by viewModels {
         ServiceLocator.provideMainViewModelFactory(this)
@@ -68,7 +69,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupButtons() {
         binding.checkButton.setOnClickListener {
-            viewModel.handleCheckInOut()
+            if (!isProcessingClick) {
+                isProcessingClick = true
+                viewModel.handleCheckInOut()
+
+                // Desbloquear después de un tiempo
+                binding.checkButton.postDelayed({
+                    isProcessingClick = false
+                }, 1000) // 1 segundo de bloqueo
+            }
         }
 
         binding.logoutButton.setOnClickListener {
