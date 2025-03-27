@@ -51,12 +51,25 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
         setupRecyclerView(view)
         setupTabs(view)
         setupExportButton(view)
+        setupAddRecordButton(view)
         loadCurrentWeek()
     }
 
     private fun setupToolbar(view: View) {
         view.findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener {
             requireActivity().onBackPressed()
+        }
+    }
+
+    private fun setupAddRecordButton(view: View) {
+        view.findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.addRecordButton).setOnClickListener {
+            // Mostrar el diálogo para añadir un nuevo registro
+            AddRecordDialog.newInstance(object : AddRecordDialog.Callback {
+                override fun onRecordAdded() {
+                    loadCurrentWeek()
+                    setupTabs(view)
+                }
+            }).show(childFragmentManager, "addRecord")
         }
     }
 

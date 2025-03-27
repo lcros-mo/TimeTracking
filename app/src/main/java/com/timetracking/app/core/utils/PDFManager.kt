@@ -2,8 +2,6 @@ package com.timetracking.app.core.utils
 
 import android.content.Context
 import android.os.Environment
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.itextpdf.kernel.pdf.PdfDocument
 import com.itextpdf.kernel.pdf.PdfWriter
 import com.itextpdf.layout.Document
@@ -48,37 +46,55 @@ class PDFManager(private val context: Context) {
         )
         .build()
 
-    private fun generateFileName(account: GoogleSignInAccount?): String {
-        val userName = account?.let {
-            "${it.familyName}_${it.givenName}"
-        } ?: "Usuario"
-        return "RegistroHorario_$userName.pdf"
+    private fun generateFileName(): String {
+        // Obtener la información del usuario de SharedPreferences
+        val sharedPref = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+        val userName = sharedPref.getString("user_name", null)
+        val userEmail = sharedPref.getString("user_email", null)
+
+        // Si tenemos un nombre de usuario, usarlo; de lo contrario, extraer del email
+        val userIdentifier = if (!userName.isNullOrEmpty()) {
+            userName.replace(" ", "_") // Reemplazar espacios con guiones bajos
+        } else if (!userEmail.isNullOrEmpty()) {
+            // Extraer la parte del correo antes del @
+            userEmail.substringBefore("@").replace(".", "_")
+        } else {
+            "Usuario_Desconocido"
+        }
+
+        // Añadir fecha actual al nombre del archivo para hacerlo único
+        val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
+        val timestamp = dateFormat.format(Date())
+
+        return "RegistroHorario_${userIdentifier}_$timestamp.pdf"
     }
 
     suspend fun createAndUploadPDF(blocks: List<TimeRecordBlock>) {
         withContext(Dispatchers.IO) {
             try {
-                val account = GoogleSignIn.getLastSignedInAccount(context)
-                val fileName = generateFileName(account)
-                val pdfData = createPDFInMemory(blocks, account)
+                val fileName = generateFileName()
+                val pdfData = createPDFInMemory(blocks)
                 uploadToServer(fileName, pdfData)
             } catch (e: Exception) {
-                val pdfData = createPDFInMemory(blocks, GoogleSignIn.getLastSignedInAccount(context))
+                val pdfData = createPDFInMemory(blocks)
                 saveLocally(pdfData)
                 throw e
             }
         }
     }
 
-    private fun createPDFInMemory(blocks: List<TimeRecordBlock>, account: GoogleSignInAccount?): ByteArray {
+    private fun createPDFInMemory(blocks: List<TimeRecordBlock>): ByteArray {
         val outputStream = ByteArrayOutputStream()
+
+        // Obtener el nombre del usuario desde SharedPreferences para el contenido del PDF
+        val sharedPref = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+        val userName = sharedPref.getString("Usuario", "user_name")
 
         PdfWriter(outputStream).use { writer ->
             val pdf = PdfDocument(writer)
             Document(pdf).use { document ->
-                val userName = account?.let { "${it.familyName} ${it.givenName}" } ?: "Usuario"
                 document.add(
-                    Paragraph("Registro Horario - $userName")
+                    Paragraph("$userName")
                         .setTextAlignment(TextAlignment.CENTER)
                         .setFontSize(16f)
                 )
@@ -147,8 +163,7 @@ class PDFManager(private val context: Context) {
     }
 
     private fun saveLocally(pdfData: ByteArray) {
-        val account = GoogleSignIn.getLastSignedInAccount(context)
-        val fileName = generateFileName(account)
+        val fileName = generateFileName()
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val file = File(downloadsDir, fileName)
         file.writeBytes(pdfData)
