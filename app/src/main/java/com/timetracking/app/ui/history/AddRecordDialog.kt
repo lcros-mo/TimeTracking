@@ -2,12 +2,14 @@ package com.timetracking.app.ui.history
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.RadioButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
@@ -26,7 +28,11 @@ class AddRecordDialog : BottomSheetDialogFragment() {
     }
 
     private var selectedDate: Calendar = Calendar.getInstance()
-    private var selectedTime: Calendar = Calendar.getInstance()
+    private var selectedCheckInTime: Calendar = Calendar.getInstance()
+    private var selectedCheckOutTime: Calendar = Calendar.getInstance().apply {
+        add(Calendar.HOUR_OF_DAY, 1) // Por defecto, una hora después de la entrada
+    }
+
     private lateinit var repository: TimeRecordRepository
     private var callback: Callback? = null
 
@@ -54,21 +60,27 @@ class AddRecordDialog : BottomSheetDialogFragment() {
         )
 
         updateDateDisplay(view)
-        updateTimeDisplay(view)
+        updateCheckInTimeDisplay(view)
+        updateCheckOutTimeDisplay(view)
 
         // Configurar selector de fecha
         view.findViewById<MaterialButton>(R.id.selectDateButton).setOnClickListener {
             showDatePicker()
         }
 
-        // Configurar selector de hora
+        // Configurar selector de hora de entrada
         view.findViewById<MaterialButton>(R.id.selectTimeButton).setOnClickListener {
-            showTimePicker()
+            showCheckInTimePicker()
         }
 
-        // Configurar botón guardar
+        // Añadir nueva función para seleccionar hora de salida
+        view.findViewById<MaterialButton>(R.id.selectCheckOutTimeButton).setOnClickListener {
+            showCheckOutTimePicker()
+        }
+
+        // Configurar botón guardar para crear ambos registros
         view.findViewById<MaterialButton>(R.id.saveButton).setOnClickListener {
-            saveRecord(view)
+            saveRecords(view)
         }
 
         // Configurar botón cancelar
@@ -82,9 +94,14 @@ class AddRecordDialog : BottomSheetDialogFragment() {
         view.findViewById<TextView>(R.id.dateText).text = dateFormat.format(selectedDate.time)
     }
 
-    private fun updateTimeDisplay(view: View) {
+    private fun updateCheckInTimeDisplay(view: View) {
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        view.findViewById<TextView>(R.id.timeText).text = timeFormat.format(selectedTime.time)
+        view.findViewById<TextView>(R.id.timeText).text = timeFormat.format(selectedCheckInTime.time)
+    }
+
+    private fun updateCheckOutTimeDisplay(view: View) {
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        view.findViewById<TextView>(R.id.checkOutTimeText).text = timeFormat.format(selectedCheckOutTime.time)
     }
 
     private fun showDatePicker() {
@@ -102,41 +119,99 @@ class AddRecordDialog : BottomSheetDialogFragment() {
         ).show()
     }
 
-    private fun showTimePicker() {
+    private fun showCheckInTimePicker() {
         TimePickerDialog(
             requireContext(),
             { _, hourOfDay, minute ->
-                selectedTime.set(Calendar.HOUR_OF_DAY, hourOfDay)
-                selectedTime.set(Calendar.MINUTE, minute)
-                updateTimeDisplay(requireView())
+                selectedCheckInTime.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                selectedCheckInTime.set(Calendar.MINUTE, minute)
+                updateCheckInTimeDisplay(requireView())
+
+                // Actualizar la hora de salida para que sea después de la entrada
+                if (selectedCheckOutTime.before(selectedCheckInTime)) {
+                    selectedCheckOutTime.set(Calendar.HOUR_OF_DAY, hourOfDay + 1)
+                    selectedCheckOutTime.set(Calendar.MINUTE, minute)
+                    updateCheckOutTimeDisplay(requireView())
+                }
             },
-            selectedTime.get(Calendar.HOUR_OF_DAY),
-            selectedTime.get(Calendar.MINUTE),
+            selectedCheckInTime.get(Calendar.HOUR_OF_DAY),
+            selectedCheckInTime.get(Calendar.MINUTE),
             true
         ).show()
     }
 
-    private fun saveRecord(view: View) {
-        // Combinar fecha y hora seleccionadas
-        val finalDateTime = Calendar.getInstance().apply {
+    private fun showCheckOutTimePicker() {
+        TimePickerDialog(
+            requireContext(),
+            { _, hourOfDay, minute ->
+                // Validar que la hora de salida sea posterior a la entrada
+                val tempCalendar = Calendar.getInstance()
+                tempCalendar.set(
+                    selectedDate.get(Calendar.YEAR),
+                    selectedDate.get(Calendar.MONTH),
+                    selectedDate.get(Calendar.DAY_OF_MONTH),
+                    hourOfDay,
+                    minute
+                )
+
+                if (tempCalendar.before(selectedCheckInTime)) {
+                    // Mostrar error si intenta establecer una salida antes de la entrada
+                    requireContext().showToast("La hora de salida debe ser posterior a la entrada")
+                } else {
+                    selectedCheckOutTime.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    selectedCheckOutTime.set(Calendar.MINUTE, minute)
+                    updateCheckOutTimeDisplay(requireView())
+                }
+            },
+            selectedCheckOutTime.get(Calendar.HOUR_OF_DAY),
+            selectedCheckOutTime.get(Calendar.MINUTE),
+            true
+        ).show()
+    }
+
+    private fun saveRecords(view: View) {
+        // Combinar fecha con hora de entrada
+        val checkInDateTime = Calendar.getInstance().apply {
             set(
                 selectedDate.get(Calendar.YEAR),
                 selectedDate.get(Calendar.MONTH),
                 selectedDate.get(Calendar.DAY_OF_MONTH),
-                selectedTime.get(Calendar.HOUR_OF_DAY),
-                selectedTime.get(Calendar.MINUTE),
+                selectedCheckInTime.get(Calendar.HOUR_OF_DAY),
+                selectedCheckInTime.get(Calendar.MINUTE),
                 0
             )
         }.time
 
-        // Determinar tipo de registro
-        val isCheckIn = view.findViewById<RadioButton>(R.id.checkInRadio).isChecked
-        val recordType = if (isCheckIn) RecordType.CHECK_IN else RecordType.CHECK_OUT
+        // Combinar fecha con hora de salida
+        val checkOutDateTime = Calendar.getInstance().apply {
+            set(
+                selectedDate.get(Calendar.YEAR),
+                selectedDate.get(Calendar.MONTH),
+                selectedDate.get(Calendar.DAY_OF_MONTH),
+                selectedCheckOutTime.get(Calendar.HOUR_OF_DAY),
+                selectedCheckOutTime.get(Calendar.MINUTE),
+                0
+            )
+        }.time
 
         lifecycleScope.launch {
-            repository.insertRecord(finalDateTime, recordType)
-            callback?.onRecordAdded()
-            dismiss()
+            try {
+                // Crear registro de entrada
+                repository.insertRecord(checkInDateTime, RecordType.CHECK_IN)
+
+                // Crear registro de salida
+                repository.insertRecord(checkOutDateTime, RecordType.CHECK_OUT)
+
+                callback?.onRecordAdded()
+                dismiss()
+            } catch (e: Exception) {
+                requireContext().showToast("Error: ${e.message}")
+            }
         }
     }
+}
+
+// Extension function para mostrar Toast
+fun Context.showToast(message: String, duration: Int = Toast.LENGTH_SHORT) {
+    Toast.makeText(this, message, duration).show()
 }
