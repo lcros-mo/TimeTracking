@@ -76,3 +76,26 @@
 
 # Proteger BuildConfig para acceso a API_KEY
 -keep class com.timetracking.app.BuildConfig { *; }
+
+# Reglas para OAuth/OpenID Connect
+-keepattributes Signature, InnerClasses, EnclosingMethod
+-keepattributes *Annotation*
+
+# Mantener las clases de la biblioteca de autenticación de Google
+-keep class com.google.android.gms.auth.** { *; }
+-keep class com.google.android.gms.common.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
+
+# Para Google Sign-In
+-keep class com.google.android.libraries.identity.googleid.** { *; }
+
+# Para Firebase Auth
+-keep class com.google.firebase.auth.** { *; }
+
+# Para el manejo de credenciales de Android
+-keep class androidx.credentials.** { *; }
+-keep interface androidx.credentials.** { *; }
+
+# Mantener interfaces CallbackHandler y clases relacionadas
+-keepnames class * implements android.os.Parcelable
+-keepnames class * implements java.io.Serializable
