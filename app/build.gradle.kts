@@ -34,8 +34,8 @@ android {
         applicationId = "com.timetracking.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 18
-        versionName = "1.5.8"
+        versionCode = 17
+        versionName = "1.5.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -77,6 +77,16 @@ kapt {
     }
 }
 
+configurations.all {
+    resolutionStrategy {
+        // Forzar la versión de Kotlin para todas las dependencias
+        force("org.jetbrains.kotlin:kotlin-stdlib:1.9.0")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0")
+        force("org.jetbrains.kotlin:kotlin-reflect:1.9.0")
+    }
+}
+
 dependencies {
     // Core Android
     implementation(libs.androidx.core.ktx)
@@ -84,6 +94,8 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.google.firebase.auth.ktx)
+    implementation(libs.googleid)
 
     // Tests
     testImplementation(libs.junit)
@@ -92,10 +104,7 @@ dependencies {
 
     // Authentication
     implementation(libs.play.services.auth.v2120)
-    implementation(libs.googleid)
-    implementation(libs.firebase.auth.ktx)
-    implementation(libs.androidx.credentials)
-    implementation(libs.androidx.credentials.play.services.auth)
+    implementation("com.google.android.gms:play-services-auth:20.7.0")  // Añadida para Google Sign In
 
     // Architecture Components
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
@@ -122,4 +131,3 @@ dependencies {
     // App Updates
     implementation(libs.app.update.ktx)
 }
-

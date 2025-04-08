@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModelProvider
 import com.google.gson.GsonBuilder
 import com.timetracking.app.TimeTrackingApp
+import com.timetracking.app.core.auth.AuthManager
 import com.timetracking.app.core.data.db.AppDatabase
 import com.timetracking.app.core.data.repository.TimeRecordRepository
 import com.timetracking.app.core.network.AuthApi
@@ -23,6 +24,7 @@ object ServiceLocator {
     private var timeRecordRepository: TimeRecordRepository? = null
     private var pdfManager: PDFManager? = null
     private var authApi: AuthApi? = null
+    private var authManager: AuthManager? = null
 
     // ViewModels Factories
     private var mainViewModelFactory: ViewModelProvider.Factory? = null
@@ -78,6 +80,12 @@ object ServiceLocator {
         }
     }
 
+    fun provideAuthManager(context: Context): AuthManager {
+        return authManager ?: synchronized(this) {
+            authManager ?: AuthManager(context.applicationContext).also { authManager = it }
+        }
+    }
+
     // Crear la API de autenticación
     private fun createAuthApi(): AuthApi {
         val gson = GsonBuilder()
@@ -124,13 +132,14 @@ object ServiceLocator {
     }
 
     // Factory para LoginViewModel
-    fun provideLoginViewModelFactory(): ViewModelProvider.Factory {
+    // Modificar el método provideLoginViewModelFactory
+    fun provideLoginViewModelFactory(context: Context): ViewModelProvider.Factory {
         return loginViewModelFactory ?: synchronized(this) {
             loginViewModelFactory ?: object : ViewModelProvider.Factory {
                 override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                     if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
                         @Suppress("UNCHECKED_CAST")
-                        return LoginViewModel(provideAuthApi()) as T
+                        return LoginViewModel(provideAuthManager(context)) as T
                     }
                     throw IllegalArgumentException("Unknown ViewModel class")
                 }

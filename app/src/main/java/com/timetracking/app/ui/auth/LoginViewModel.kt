@@ -2,14 +2,13 @@ package com.timetracking.app.ui.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.timetracking.app.BuildConfig
-import com.timetracking.app.core.network.AuthApi
+import com.timetracking.app.core.auth.AuthManager
+import com.timetracking.app.core.auth.AuthResult
 import com.timetracking.app.core.network.User
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.io.IOException
 
 data class LoginUiState(
     val isLoading: Boolean = false,
@@ -18,7 +17,7 @@ data class LoginUiState(
     val error: String? = null
 )
 
-class LoginViewModel(private val authApi: AuthApi) : ViewModel() {
+class LoginViewModel(private val authManager: AuthManager) : ViewModel() {
 
     private val ALLOWED_DOMAIN = "@grecmallorca.org"
 
@@ -26,57 +25,34 @@ class LoginViewModel(private val authApi: AuthApi) : ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
-    fun login(email: String) {
+    fun signIn() {
         _uiState.value = LoginUiState(isLoading = true)
 
-        if (email.isEmpty()) {
-            _uiState.value = LoginUiState(error = "Por favor, introduce tu correo")
-            return
-        }
-
-        if (!email.endsWith(ALLOWED_DOMAIN)) {
-            _uiState.value = LoginUiState(error = "Solo se permiten correos con dominio $ALLOWED_DOMAIN")
-            return
-        }
-
-        val trimmedEmail = email.trim().lowercase()
-
         viewModelScope.launch {
-            try {
-                val response = authApi.checkAuthorization(trimmedEmail, BuildConfig.API_KEY)
-
-                if (response.isSuccessful) {
-                    val body = response.body()
-
-                    if (body?.authorized == true) {
+            when (val result = authManager.signIn()) {
+                is AuthResult.Success -> {
+                    if (result.userData.email.endsWith(ALLOWED_DOMAIN)) {
                         _uiState.value = LoginUiState(
                             isLoading = false,
                             isLoggedIn = true,
-                            user = body.user
+                            user = User(
+                                email = result.userData.email,
+                                name = result.userData.displayName
+                            )
                         )
                     } else {
                         _uiState.value = LoginUiState(
                             isLoading = false,
-                            error = "El correo no está autorizado"
+                            error = "Solo se permiten correos con dominio $ALLOWED_DOMAIN"
                         )
                     }
-                } else {
-                    val errorBody = response.errorBody()?.string()
+                }
+                is AuthResult.Error -> {
                     _uiState.value = LoginUiState(
                         isLoading = false,
-                        error = "Error en respuesta HTTP ${response.code()}: $errorBody"
+                        error = result.message
                     )
                 }
-            } catch (e: IOException) {
-                _uiState.value = LoginUiState(
-                    isLoading = false,
-                    error = "Error de conexión: ${e.message}"
-                )
-            } catch (e: Exception) {
-                _uiState.value = LoginUiState(
-                    isLoading = false,
-                    error = "Error al iniciar sesión: ${e.message}"
-                )
             }
         }
     }

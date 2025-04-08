@@ -130,6 +130,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun logout() {
         lifecycleScope.launch {
+            val authManager = ServiceLocator.provideAuthManager(this@MainActivity)
+            authManager.signOut()
+
             getSharedPreferences("auth_prefs", MODE_PRIVATE).edit().clear().apply()
             showToast("Has cerrado sesión correctamente")
             val intent = Intent(this@MainActivity, LoginActivity::class.java)

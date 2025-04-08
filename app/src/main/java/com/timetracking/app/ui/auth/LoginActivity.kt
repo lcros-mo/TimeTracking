@@ -2,28 +2,32 @@ package com.timetracking.app.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.Gravity
 import android.widget.Toast
-import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import com.timetracking.app.BuildConfig
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.tasks.Task
 import com.timetracking.app.R
-import com.timetracking.app.core.di.ServiceLocator
 import com.timetracking.app.databinding.ActivityLoginBinding
-import com.timetracking.app.databinding.DialogLoginBinding
 import com.timetracking.app.ui.home.MainActivity
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
+    private lateinit var googleSignInClient: GoogleSignInClient
 
-    private val viewModel: LoginViewModel by viewModels {
-        ServiceLocator.provideLoginViewModelFactory()
+    private val signInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            handleSignInResult(task)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,63 +45,54 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
-        setupObservers()
+        configureGoogleSignIn()
         setupUI()
     }
 
-    private fun setupObservers() {
-        lifecycleScope.launch {
-            viewModel.uiState.collectLatest { state ->
-                binding.signInButton.isEnabled = !state.isLoading
+    private fun configureGoogleSignIn() {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .build()
 
-                if (state.isLoggedIn && state.user != null) {
-                    val sharedPref = getSharedPreferences("auth_prefs", MODE_PRIVATE)
-                    with(sharedPref.edit()) {
-                        putString("user_email", state.user.email)
-                        putString("user_name", state.user.name)
-                        apply()
-                    }
-
-                    showToast("Sesión iniciada correctamente")
-                    startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                    finish()
-                }
-
-                state.error?.let {
-                    showToast(it)
-                    viewModel.clearError()
-                }
-            }
-        }
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
     }
 
     private fun setupUI() {
         binding.signInButton.setOnClickListener {
-            showLoginDialog()
+            signIn()
         }
-
-        //binding.versionText.text = "Versión ${BuildConfig.VERSION_NAME}"
     }
 
-    private fun showLoginDialog() {
-        val dialogBinding = DialogLoginBinding.inflate(layoutInflater)
+    private fun signIn() {
+        val signInIntent = googleSignInClient.signInIntent
+        signInLauncher.launch(signInIntent)
+    }
 
-        val dialog = AlertDialog.Builder(this, R.style.AlertDialogTheme)
-            .setView(dialogBinding.root)
-            .setCancelable(true)
-            .create()
+    private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
+        try {
+            val account = completedTask.getResult(ApiException::class.java)
 
-        dialogBinding.loginButton.setOnClickListener {
-            val email = dialogBinding.emailInput.text.toString().trim()
-            viewModel.login(email)
-            dialog.dismiss()
+            // Verificar que el email pertenece al dominio permitido
+            val email = account?.email
+            if (email != null && email.endsWith("@grecmallorca.org")) {
+                // Guardar información del usuario en SharedPreferences
+                val sharedPref = getSharedPreferences("auth_prefs", MODE_PRIVATE)
+                with(sharedPref.edit()) {
+                    putString("user_email", email)
+                    putString("user_name", account.displayName ?: email.substringBefore('@'))
+                    apply()
+                }
+
+                showToast("Sesión iniciada correctamente")
+                startActivity(Intent(this, MainActivity::class.java))
+                finish()
+            } else {
+                showToast("Solo se permiten correos con dominio @grecmallorca.org")
+                googleSignInClient.signOut()
+            }
+        } catch (e: ApiException) {
+            showToast("Error al iniciar sesión: ${e.statusCode}")
         }
-
-        dialogBinding.cancelButton.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialog.show()
     }
 
     private fun showToast(message: String) {

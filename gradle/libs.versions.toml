@@ -20,7 +20,8 @@ firebaseAuthKtx = "23.1.0"
 retrofit = "2.9.0"
 roomVersion = "2.6.1"
 appUpdateKtx = "2.1.0"
-lifecycle = "2.7.0"  # Nueva versión para Lifecycle components
+lifecycle = "2.7.0"
+firebaseAuthKtxVersion = "23.2.0"  # Nueva versión para Lifecycle components
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -54,6 +55,7 @@ androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecyc
 
 # Coroutines (nuevo)
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesAndroid" }
+google-firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx", version.ref = "firebaseAuthKtxVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
