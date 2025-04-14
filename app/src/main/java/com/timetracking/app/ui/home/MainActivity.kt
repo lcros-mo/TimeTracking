@@ -11,6 +11,9 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.firebase.auth.FirebaseAuth
 import com.timetracking.app.R
 import com.timetracking.app.core.di.ServiceLocator
 import com.timetracking.app.databinding.ActivityMainBinding
@@ -81,8 +84,21 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.logoutButton.setOnClickListener {
-            logout()
+            val googleSignInClient = GoogleSignIn.getClient(this,
+                GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .requestIdToken(getString(R.string.default_web_client_id))
+                    .requestEmail()
+                    .build()
+            )
+
+            // Cerrar sesión de Google y Firebase
+            googleSignInClient.signOut().addOnCompleteListener {
+                FirebaseAuth.getInstance().signOut()
+                startActivity(Intent(this, LoginActivity::class.java))
+                finish()
+            }
         }
+
 
         binding.historyButton.setOnClickListener {
             navigateToHistory()
@@ -130,9 +146,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun logout() {
         lifecycleScope.launch {
-            val authManager = ServiceLocator.provideAuthManager(this@MainActivity)
-            authManager.signOut()
-
             getSharedPreferences("auth_prefs", MODE_PRIVATE).edit().clear().apply()
             showToast("Has cerrado sesión correctamente")
             val intent = Intent(this@MainActivity, LoginActivity::class.java)

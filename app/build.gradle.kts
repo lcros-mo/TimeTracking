@@ -1,9 +1,11 @@
+// Archivo: app/build.gradle.kts
+
 import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.google.services)
+    alias(libs.plugins.google.services)  // Asegúrate de que este plugin esté activado
     kotlin("kapt")
     id("kotlin-parcelize")
 }
@@ -34,8 +36,8 @@ android {
         applicationId = "com.timetracking.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 17
-        versionName = "1.5.7"
+        versionCode = 19
+        versionName = "1.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -77,16 +79,6 @@ kapt {
     }
 }
 
-configurations.all {
-    resolutionStrategy {
-        // Forzar la versión de Kotlin para todas las dependencias
-        force("org.jetbrains.kotlin:kotlin-stdlib:1.9.0")
-        force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0")
-        force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0")
-        force("org.jetbrains.kotlin:kotlin-reflect:1.9.0")
-    }
-}
-
 dependencies {
     // Core Android
     implementation(libs.androidx.core.ktx)
@@ -94,8 +86,6 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.google.firebase.auth.ktx)
-    implementation(libs.googleid)
 
     // Tests
     testImplementation(libs.junit)
@@ -104,7 +94,10 @@ dependencies {
 
     // Authentication
     implementation(libs.play.services.auth.v2120)
-    implementation("com.google.android.gms:play-services-auth:20.7.0")  // Añadida para Google Sign In
+    implementation(libs.googleid)
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
 
     // Architecture Components
     implementation(libs.androidx.lifecycle.viewmodel.ktx)

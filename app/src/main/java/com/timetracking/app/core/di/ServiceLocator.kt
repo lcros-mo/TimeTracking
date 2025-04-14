@@ -131,15 +131,13 @@ object ServiceLocator {
         }
     }
 
-    // Factory para LoginViewModel
-    // Modificar el método provideLoginViewModelFactory
-    fun provideLoginViewModelFactory(context: Context): ViewModelProvider.Factory {
+    fun provideLoginViewModelFactory(context: Context = TimeTrackingApp.appContext): ViewModelProvider.Factory {
         return loginViewModelFactory ?: synchronized(this) {
             loginViewModelFactory ?: object : ViewModelProvider.Factory {
                 override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                     if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
                         @Suppress("UNCHECKED_CAST")
-                        return LoginViewModel(provideAuthManager(context)) as T
+                        return LoginViewModel(provideAuthApi()) as T
                     }
                     throw IllegalArgumentException("Unknown ViewModel class")
                 }

@@ -9,5 +9,7 @@
     <string name="add_record">Añadir registro</string>
     <string name="record_added">Registro añadido correctamente</string>
     <string name="record_deleted">Registro eliminado correctamente</string>
+    <string name="oauth_auth_endpoint">https://accounts.google.com/o/oauth2/auth</string>
+    <string name="oauth_token_endpoint">https://oauth2.googleapis.com/token</string>
 
 </resources>

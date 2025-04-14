@@ -2,103 +2,89 @@ package com.timetracking.app.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.Gravity
+import android.util.Log
+import android.widget.Button
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.auth.api.signin.*
 import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.tasks.Task
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.timetracking.app.R
-import com.timetracking.app.databinding.ActivityLoginBinding
 import com.timetracking.app.ui.home.MainActivity
 
 class LoginActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityLoginBinding
     private lateinit var googleSignInClient: GoogleSignInClient
+    private lateinit var auth: FirebaseAuth
 
-    private val signInLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            handleSignInResult(task)
-        }
-    }
+    private val RC_SIGN_IN = 9001
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_login)
 
-        binding = ActivityLoginBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        auth = FirebaseAuth.getInstance()
 
-        val sharedPref = getSharedPreferences("auth_prefs", MODE_PRIVATE)
-        val savedEmail = sharedPref.getString("user_email", null)
-
-        if (savedEmail != null) {
+        // ✅ Si ya hay usuario logueado, saltamos a MainActivity
+        if (auth.currentUser != null) {
+            Log.d("LoginActivity", "Usuario ya autenticado: ${auth.currentUser?.email}")
             startActivity(Intent(this, MainActivity::class.java))
             finish()
             return
         }
 
-        configureGoogleSignIn()
-        setupUI()
-    }
-
-    private fun configureGoogleSignIn() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id)) // Asegúrate de que existe en strings.xml
             .requestEmail()
             .build()
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
-    }
 
-    private fun setupUI() {
-        binding.signInButton.setOnClickListener {
+        findViewById<Button>(R.id.googleSignInButton).setOnClickListener {
             signIn()
         }
     }
 
     private fun signIn() {
         val signInIntent = googleSignInClient.signInIntent
-        signInLauncher.launch(signInIntent)
+        startActivityForResult(signInIntent, RC_SIGN_IN)
     }
 
-    private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
-        try {
-            val account = completedTask.getResult(ApiException::class.java)
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
 
-            // Verificar que el email pertenece al dominio permitido
-            val email = account?.email
-            if (email != null && email.endsWith("@grecmallorca.org")) {
-                // Guardar información del usuario en SharedPreferences
-                val sharedPref = getSharedPreferences("auth_prefs", MODE_PRIVATE)
-                with(sharedPref.edit()) {
-                    putString("user_email", email)
-                    putString("user_name", account.displayName ?: email.substringBefore('@'))
-                    apply()
+        if (requestCode == RC_SIGN_IN) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                if (account != null) {
+                    firebaseAuthWithGoogle(account.idToken!!)
+                } else {
+                    Toast.makeText(this, "No se pudo obtener la cuenta de Google", Toast.LENGTH_SHORT).show()
                 }
-
-                showToast("Sesión iniciada correctamente")
-                startActivity(Intent(this, MainActivity::class.java))
-                finish()
-            } else {
-                showToast("Solo se permiten correos con dominio @grecmallorca.org")
-                googleSignInClient.signOut()
+            } catch (e: ApiException) {
+                Log.e("LoginActivity", "Google sign in failed", e)
+                Toast.makeText(this, "Error al iniciar sesión con Google: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
             }
-        } catch (e: ApiException) {
-            showToast("Error al iniciar sesión: ${e.statusCode}")
         }
     }
 
-    private fun showToast(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).apply {
-            setGravity(Gravity.CENTER, 0, 0)
-            show()
-        }
+    private fun firebaseAuthWithGoogle(idToken: String) {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    val user = auth.currentUser
+                    Log.d("LoginActivity", "Login con Firebase OK: ${user?.email}")
+                    Toast.makeText(this, "Bienvenido, ${user?.displayName}", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(this, MainActivity::class.java))
+                    finish()
+                } else {
+                    Log.e("LoginActivity", "signInWithCredential:failure", task.exception)
+                    Toast.makeText(this, "Fallo al autenticar con Firebase", Toast.LENGTH_SHORT).show()
+                }
+            }
     }
 }
