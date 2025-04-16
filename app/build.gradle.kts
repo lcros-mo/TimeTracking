@@ -1,11 +1,9 @@
-// Archivo: app/build.gradle.kts
-
 import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.google.services)  // Asegúrate de que este plugin esté activado
+    alias(libs.plugins.google.services)
     kotlin("kapt")
     id("kotlin-parcelize")
 }
@@ -19,16 +17,30 @@ if (localProperties.exists()) {
 }
 
 val apiKey = properties.getProperty("API_KEY") ?: "DEFAULT_API_KEY"
+val keystorePath = properties.getProperty("keystore.path")
+val keystorePassword = properties.getProperty("keystore.password")
+val keystoreAlias = properties.getProperty("keystore.alias")
+val keystoreAliasPassword = properties.getProperty("keystore.alias.password")
 
 android {
     signingConfigs {
         create("release") {
-            storeFile = file("C:\\Users\\LuisCros\\Desktop\\GP KS\\GP.jks")
-            storePassword = "477094"
-            keyAlias = "GPS"
-            keyPassword = "477094"
+            // Verificar que las propiedades existen antes de usarlas
+            if (keystorePath != null && keystorePassword != null &&
+                keystoreAlias != null && keystoreAliasPassword != null) {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = keystoreAlias
+                keyPassword = keystoreAliasPassword
+            } else {
+                // Log para desarrollo - esto no afectará a las builds de producción
+                // siempre que las propiedades estén configuradas
+                println("WARNING: Keystore properties not found in local.properties!")
+            }
         }
     }
+
+    // El resto de tu configuración permanece igual
     namespace = "com.timetracking.app"
     compileSdk = 34
 
