@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.textfield.TextInputEditText
 import com.timetracking.app.R
 import com.timetracking.app.TimeTrackingApp
 import com.timetracking.app.core.data.model.TimeRecord
@@ -97,7 +98,7 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
             showTimePickerDialog(block.checkIn)
         }
 
-        // Configurar check-out
+        // Configurar check-out - REVERTIDO AL ORIGINAL
         block.checkOut?.let { checkOut ->
             view.findViewById<TextView>(R.id.checkOutTime).apply {
                 text = timeFormat.format(checkOut.date)
@@ -110,6 +111,19 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
                 text = getString(R.string.pending)
             }
             view.findViewById<MaterialButton>(R.id.editCheckOutButton).isEnabled = false
+        }
+
+        // Configurar el campo de comentarios - MANTENER ESTO
+        val commentInput = view.findViewById<TextInputEditText>(R.id.commentInput)
+
+        // Cargar el comentario actual (puede ser de entrada o salida)
+        val currentComment = block.checkOut?.note ?: block.checkIn.note
+        commentInput.setText(currentComment)
+
+        // Añadir botón de guardar comentario
+        view.findViewById<MaterialButton>(R.id.saveCommentButton)?.setOnClickListener {
+            val newComment = commentInput.text.toString().trim()
+            saveComment(block, newComment)
         }
 
         // Animar las tarjetas
@@ -147,6 +161,25 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
             calendar.get(Calendar.MINUTE),
             true
         ).show()
+    }
+
+    private fun saveComment(block: TimeRecordBlock, comment: String) {
+        lifecycleScope.launch {
+            try {
+                // Guardar comentario en entrada
+                repository.updateRecordNote(block.checkIn.id, comment)
+
+                // Si hay salida, guardar también ahí
+                block.checkOut?.let { checkOut ->
+                    repository.updateRecordNote(checkOut.id, comment)
+                }
+
+                Toast.makeText(context, "Observación guardada", Toast.LENGTH_SHORT).show()
+                timeEditCallback?.onTimeUpdated()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error al guardar: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun showDeleteConfirmation(block: TimeRecordBlock) {

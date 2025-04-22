@@ -1,4 +1,4 @@
-package com.timetracking.app.ui.main
+package com.timetracking.app.ui.home
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -60,6 +60,21 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
 
     init {
         loadLastState()
+    }
+
+    /**
+     * Método para reiniciar el estado cuando el botón se queda bloqueado
+     */
+    fun resetState() {
+        _uiState.value = MainUiState(
+            isCheckedIn = false,
+            checkInTime = null,
+            lastCheckText = "Estado reiniciado manualmente"
+        )
+
+        // Actualizar tiempos
+        updateTodayTime()
+        updateWeeklyTime()
     }
 
     /**

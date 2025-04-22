@@ -11,7 +11,7 @@ import com.timetracking.app.core.network.AuthApi
 import com.timetracking.app.ui.auth.LoginViewModel
 import com.timetracking.app.ui.history.HistoryViewModel
 import com.timetracking.app.core.utils.PDFManager
-import com.timetracking.app.ui.main.MainViewModel
+import com.timetracking.app.ui.home.MainViewModel
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory

@@ -103,4 +103,11 @@ class TimeRecordRepository(private val timeRecordDao: TimeRecordDao) {
         // Verificar si hay al menos un registro y ninguno está marcado como exportado
         return records.isNotEmpty() && records.any { !it.exported }
     }
+
+    suspend fun updateRecordNote(recordId: Long, note: String): Boolean {
+        val record = timeRecordDao.getRecordById(recordId) ?: return false
+
+        timeRecordDao.update(record.copy(note = note))
+        return true
+    }
 }

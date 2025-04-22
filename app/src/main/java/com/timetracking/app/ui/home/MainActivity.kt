@@ -9,17 +9,14 @@ import android.view.View
 import android.view.animation.AnimationUtils
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.firebase.auth.FirebaseAuth
 import com.timetracking.app.R
 import com.timetracking.app.core.di.ServiceLocator
 import com.timetracking.app.databinding.ActivityMainBinding
 import com.timetracking.app.ui.auth.LoginActivity
 import com.timetracking.app.ui.history.HistoryFragment
-import com.timetracking.app.ui.main.MainViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -84,24 +81,25 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.logoutButton.setOnClickListener {
-            val googleSignInClient = GoogleSignIn.getClient(this,
-                GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                    .requestIdToken(getString(R.string.default_web_client_id))
-                    .requestEmail()
-                    .build()
-            )
-
-            // Cerrar sesión de Google y Firebase
-            googleSignInClient.signOut().addOnCompleteListener {
-                FirebaseAuth.getInstance().signOut()
-                startActivity(Intent(this, LoginActivity::class.java))
-                finish()
-            }
+            logout()
         }
-
 
         binding.historyButton.setOnClickListener {
             navigateToHistory()
+        }
+
+        // Añadir funcionalidad de reinicio manual con pulsación larga
+        binding.mainContent.setOnLongClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("Reiniciar estado")
+                .setMessage("¿Quieres reiniciar el estado de la aplicación? Esto es útil si el botón se ha quedado bloqueado.")
+                .setPositiveButton("Reiniciar") { _, _ ->
+                    viewModel.resetState()
+                    showToast("Estado reiniciado")
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+            true
         }
     }
 

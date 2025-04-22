@@ -33,7 +33,8 @@ data class RecordInfo(
     val date: String,
     val entryTime: String,
     val exitTime: String,
-    val duration: String
+    val duration: String,
+    val comment: String = ""  // Añadido campo de comentario
 )
 
 // Mantener la dirección del servidor para compatibilidad
@@ -62,22 +63,67 @@ class PDFManager(private val context: Context) {
         )
         .build()
 
-    private fun generateFileName(): String {
-        // Obtener la información del usuario de SharedPreferences
-        val sharedPref = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-        val userName = sharedPref.getString("user_name", null)
-        val userEmail = sharedPref.getString("user_email", null)
+    private fun getUserDisplayName(): String {
+        // 1. Intentar obtener de la ubicación estándar de la app
+        val authPrefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
 
-        // Si tenemos un nombre de usuario, usarlo; de lo contrario, extraer del email
-        val userIdentifier = if (!userName.isNullOrEmpty()) {
-            userName.replace(" ", "_") // Reemplazar espacios con guiones bajos
-        } else if (!userEmail.isNullOrEmpty()) {
-            // Extraer la parte del correo antes del @
-            userEmail.substringBefore("@").replace(".", "_")
-        } else {
-            "Usuario_Desconocido"
+        val userName = authPrefs.getString("user_name", null)
+        if (!userName.isNullOrEmpty()) {
+            return userName
         }
 
+        val userEmail = authPrefs.getString("user_email", null)
+        if (!userEmail.isNullOrEmpty()) {
+            // Si tenemos email pero no nombre, formateamos el email
+            val namePart = userEmail.substringBefore("@")
+            if (namePart.contains(".")) {
+                return namePart.split(".").joinToString(" ") {
+                    it.replaceFirstChar { char -> char.uppercase() }
+                }
+            }
+            return namePart.replaceFirstChar { it.uppercase() }
+        }
+
+        val googleSignInPrefs = context.getSharedPreferences("google_sign_in", Context.MODE_PRIVATE)
+        val googleUserName = googleSignInPrefs.getString("display_name", null)
+        if (!googleUserName.isNullOrEmpty()) {
+            return googleUserName
+        }
+
+        val googleUserEmail = googleSignInPrefs.getString("email", null)
+        if (!googleUserEmail.isNullOrEmpty()) {
+            // Formatear el email de la misma manera
+            val namePart = googleUserEmail.substringBefore("@")
+            if (namePart.contains(".")) {
+                return namePart.split(".").joinToString(" ") {
+                    it.replaceFirstChar { char -> char.uppercase() }
+                }
+            }
+            return namePart.replaceFirstChar { it.uppercase() }
+        }
+
+        val allPrefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE).all +
+                context.getSharedPreferences("google_sign_in", Context.MODE_PRIVATE).all +
+                context.getSharedPreferences("accounts", Context.MODE_PRIVATE).all
+
+        val emailPattern = "[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}".toRegex()
+
+        for ((_, value) in allPrefs) {
+            if (value is String && emailPattern.matches(value)) {
+                val namePart = value.substringBefore("@")
+                if (namePart.contains(".")) {
+                    return namePart.split(".").joinToString(" ") {
+                        it.replaceFirstChar { char -> char.uppercase() }
+                    }
+                }
+                return namePart.replaceFirstChar { it.uppercase() }
+            }
+        }
+        return "Usuario Desconocido"
+    }
+
+    private fun generateFileName(): String {
+        val userIdentifier = getUserDisplayName().replace(" ", "_")
         return "RegistroHorario_${userIdentifier}.pdf"
     }
 
@@ -161,14 +207,13 @@ class PDFManager(private val context: Context) {
                 val text = PdfTextExtractor.getTextFromPage(page)
 
                 // Parsear el texto para encontrar registros
-                // Buscar patrones como "DD/MM/YYYY HH:MM HH:MM XhYm"
-                // Este regex busca fechas, horas de entrada y salida, y duración
-                val recordPattern = "(\\d{2}/\\d{2}/\\d{4})\\s+(\\d{2}:\\d{2})\\s+(\\d{2}:\\d{2}|Pendiente)\\s+(\\d+h\\s+\\d+m)".toRegex()
+                // Este regex busca fechas, horas de entrada y salida, duración y comentarios
+                val recordPattern = "(\\d{2}/\\d{2}/\\d{4})\\s+(\\d{2}:\\d{2})\\s+(\\d{2}:\\d{2}|Pendiente)\\s+(\\d+h\\s+\\d+m)\\s*([\\s\\S]*?)(?=\\d{2}/\\d{2}/\\d{4}|$)".toRegex()
 
                 val matches = recordPattern.findAll(text)
                 matches.forEach { match ->
-                    val (date, entryTime, exitTime, duration) = match.destructured
-                    extractedRecords.add(RecordInfo(date, entryTime, exitTime, duration))
+                    val (date, entryTime, exitTime, duration, comment) = match.destructured
+                    extractedRecords.add(RecordInfo(date, entryTime, exitTime, duration, comment.trim()))
                 }
             }
 
@@ -192,7 +237,8 @@ class PDFManager(private val context: Context) {
                 dateFormat.format(block.date),
                 timeFormat.format(block.checkIn.date),
                 block.checkOut?.let { timeFormat.format(it.date) } ?: "Pendiente",
-                "${block.duration / 60}h ${block.duration % 60}m"
+                "${block.duration / 60}h ${block.duration % 60}m",
+                block.checkIn.note ?: block.checkOut?.note ?: ""  // Añadir el comentario
             )
         }
 
@@ -216,10 +262,7 @@ class PDFManager(private val context: Context) {
     // Crear un PDF con una lista combinada de RecordInfo
     private fun createPDFWithAllRecords(records: List<RecordInfo>): ByteArray {
         val outputStream = ByteArrayOutputStream()
-
-        // Obtener el nombre del usuario desde SharedPreferences para el contenido del PDF
-        val sharedPref = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-        val userName = sharedPref.getString("user_name", "Usuario Desconocido")
+        val userName = getUserDisplayName()
 
         PdfWriter(outputStream).use { writer ->
             val pdf = PdfDocument(writer)
@@ -236,20 +279,22 @@ class PDFManager(private val context: Context) {
                         .setFontSize(10f)
                 )
 
-                // Crear tabla con todos los registros
-                val table = Table(floatArrayOf(150f, 100f, 100f, 100f))
+                // Crear tabla con todos los registros (incluyendo observaciones)
+                val table = Table(floatArrayOf(130f, 80f, 80f, 80f, 180f))
                     .setTextAlignment(TextAlignment.CENTER)
 
                 table.addHeaderCell("Fecha")
                 table.addHeaderCell("Entrada")
                 table.addHeaderCell("Salida")
                 table.addHeaderCell("Duración")
+                table.addHeaderCell("Observaciones")
 
                 records.forEach { record ->
                     table.addCell(record.date)
                     table.addCell(record.entryTime)
                     table.addCell(record.exitTime)
                     table.addCell(record.duration)
+                    table.addCell(record.comment)  // Añadir comentario
                 }
 
                 document.add(table)
@@ -283,10 +328,7 @@ class PDFManager(private val context: Context) {
 
     private fun createPDFInMemory(blocks: List<TimeRecordBlock>): ByteArray {
         val outputStream = ByteArrayOutputStream()
-
-        // Obtener el nombre del usuario desde SharedPreferences para el contenido del PDF
-        val sharedPref = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-        val userName = sharedPref.getString("user_name", "Usuario Desconocido")
+        val userName = getUserDisplayName()
 
         PdfWriter(outputStream).use { writer ->
             val pdf = PdfDocument(writer)
@@ -319,21 +361,27 @@ class PDFManager(private val context: Context) {
     }
 
     private fun createTable(blocks: List<TimeRecordBlock>): Table {
-        val table = Table(floatArrayOf(150f, 100f, 100f, 100f))
+        val table = Table(floatArrayOf(130f, 80f, 80f, 80f, 180f))  // Añadir columna para observaciones
             .setTextAlignment(TextAlignment.CENTER)
 
         table.addHeaderCell("Fecha")
         table.addHeaderCell("Entrada")
         table.addHeaderCell("Salida")
         table.addHeaderCell("Duración")
+        table.addHeaderCell("Observaciones")  // Nueva columna
 
         blocks.forEach { block ->
             table.addCell(dateFormat.format(block.date))
             table.addCell(timeFormat.format(block.checkIn.date))
             table.addCell(block.checkOut?.let { timeFormat.format(it.date) } ?: "Pendiente")
+
             val hours = block.duration / 60
             val minutes = block.duration % 60
             table.addCell("${hours}h ${minutes}m")
+
+            // Añadir la observación si existe
+            val comment = block.checkOut?.note ?: block.checkIn.note ?: ""
+            table.addCell(comment)
         }
         return table
     }
