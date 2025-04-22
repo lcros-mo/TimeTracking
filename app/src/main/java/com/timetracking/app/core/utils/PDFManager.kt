@@ -3,6 +3,7 @@ package com.timetracking.app.core.utils
 import android.content.Context
 import android.os.Environment
 import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
 import com.itextpdf.kernel.pdf.PdfDocument
 import com.itextpdf.kernel.pdf.PdfReader
 import com.itextpdf.kernel.pdf.PdfWriter
@@ -28,16 +29,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-// Clase para almacenar la información de registros extraída del PDF
 data class RecordInfo(
     val date: String,
     val entryTime: String,
     val exitTime: String,
     val duration: String,
-    val comment: String = ""  // Añadido campo de comentario
+    val comment: String = ""
 )
 
-// Mantener la dirección del servidor para compatibilidad
 object ServerConfig {
     private const val SERVER_IP = "80.32.125.224"
     private const val SERVER_PORT = 5000
@@ -64,61 +63,26 @@ class PDFManager(private val context: Context) {
         .build()
 
     private fun getUserDisplayName(): String {
-        // 1. Intentar obtener de la ubicación estándar de la app
-        val authPrefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+        // Obtener el usuario actual de Firebase
+        val currentUser = FirebaseAuth.getInstance().currentUser
 
-        val userName = authPrefs.getString("user_name", null)
-        if (!userName.isNullOrEmpty()) {
-            return userName
-        }
-
-        val userEmail = authPrefs.getString("user_email", null)
-        if (!userEmail.isNullOrEmpty()) {
-            // Si tenemos email pero no nombre, formateamos el email
-            val namePart = userEmail.substringBefore("@")
-            if (namePart.contains(".")) {
-                return namePart.split(".").joinToString(" ") {
-                    it.replaceFirstChar { char -> char.uppercase() }
-                }
+        // Priorizar nombre de display de Firebase
+        if (currentUser != null) {
+            // Primero intentar con el nombre de display
+            currentUser.displayName?.let {
+                return it
             }
-            return namePart.replaceFirstChar { it.uppercase() }
-        }
 
-        val googleSignInPrefs = context.getSharedPreferences("google_sign_in", Context.MODE_PRIVATE)
-        val googleUserName = googleSignInPrefs.getString("display_name", null)
-        if (!googleUserName.isNullOrEmpty()) {
-            return googleUserName
-        }
-
-        val googleUserEmail = googleSignInPrefs.getString("email", null)
-        if (!googleUserEmail.isNullOrEmpty()) {
-            // Formatear el email de la misma manera
-            val namePart = googleUserEmail.substringBefore("@")
-            if (namePart.contains(".")) {
-                return namePart.split(".").joinToString(" ") {
-                    it.replaceFirstChar { char -> char.uppercase() }
-                }
-            }
-            return namePart.replaceFirstChar { it.uppercase() }
-        }
-
-        val allPrefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE).all +
-                context.getSharedPreferences("google_sign_in", Context.MODE_PRIVATE).all +
-                context.getSharedPreferences("accounts", Context.MODE_PRIVATE).all
-
-        val emailPattern = "[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}".toRegex()
-
-        for ((_, value) in allPrefs) {
-            if (value is String && emailPattern.matches(value)) {
-                val namePart = value.substringBefore("@")
-                if (namePart.contains(".")) {
-                    return namePart.split(".").joinToString(" ") {
-                        it.replaceFirstChar { char -> char.uppercase() }
-                    }
-                }
-                return namePart.replaceFirstChar { it.uppercase() }
+            // Si no hay nombre de display, usar el email
+            currentUser.email?.let { email ->
+                // Formatear el email como nombre
+                return email.substringBefore('@')
+                    .split('.')
+                    .joinToString(" ") { it.capitalize() }
             }
         }
+
+        // Fallback: Nombre de usuario desconocido
         return "Usuario Desconocido"
     }
 
@@ -192,22 +156,17 @@ class PDFManager(private val context: Context) {
         }
     }
 
-    // Extraer registros del PDF existente
     private fun extractRecordsFromExistingPDF(existingPdfData: ByteArray): List<RecordInfo> {
         val extractedRecords = mutableListOf<RecordInfo>()
 
         try {
-            // Usar PdfTextExtractor para obtener el texto del PDF
             val pdfReader = PdfReader(existingPdfData.inputStream())
             val pdfDocument = PdfDocument(pdfReader)
 
-            // Extraer texto de cada página
             for (i in 1..pdfDocument.numberOfPages) {
                 val page = pdfDocument.getPage(i)
                 val text = PdfTextExtractor.getTextFromPage(page)
 
-                // Parsear el texto para encontrar registros
-                // Este regex busca fechas, horas de entrada y salida, duración y comentarios
                 val recordPattern = "(\\d{2}/\\d{2}/\\d{4})\\s+(\\d{2}:\\d{2})\\s+(\\d{2}:\\d{2}|Pendiente)\\s+(\\d+h\\s+\\d+m)\\s*([\\s\\S]*?)(?=\\d{2}/\\d{2}/\\d{4}|$)".toRegex()
 
                 val matches = recordPattern.findAll(text)
@@ -219,47 +178,39 @@ class PDFManager(private val context: Context) {
 
             pdfReader.close()
         } catch (e: Exception) {
-            // Log el error pero continuar
             Log.e("PDFManager", "Error extracting records from PDF: ${e.message}")
         }
 
         return extractedRecords
     }
 
-    // Combinar registros existentes con nuevos y crear un PDF actualizado
     private fun createPDFWithCombinedRecords(existingPdfData: ByteArray, newBlocks: List<TimeRecordBlock>): ByteArray {
-        // Extraer registros del PDF existente
         val existingRecords = extractRecordsFromExistingPDF(existingPdfData)
 
-        // Convertir los TimeRecordBlocks a RecordInfo para comparación
         val newRecordsInfo = newBlocks.map { block ->
             RecordInfo(
                 dateFormat.format(block.date),
                 timeFormat.format(block.checkIn.date),
                 block.checkOut?.let { timeFormat.format(it.date) } ?: "Pendiente",
                 "${block.duration / 60}h ${block.duration % 60}m",
-                block.checkIn.note ?: block.checkOut?.note ?: ""  // Añadir el comentario
+                block.checkIn.note ?: block.checkOut?.note ?: ""
             )
         }
 
-        // Filtrar solo los registros que no existen ya en el PDF
         val uniqueNewRecords = newRecordsInfo.filter { newRecord ->
             !existingRecords.any { it.date == newRecord.date &&
                     it.entryTime == newRecord.entryTime &&
                     it.exitTime == newRecord.exitTime }
         }
 
-        // Si no hay registros nuevos únicos, devolver el PDF existente
         if (uniqueNewRecords.isEmpty()) {
             return existingPdfData
         }
 
-        // Crear un nuevo PDF con todos los registros (existentes + nuevos únicos)
         val allRecords = existingRecords + uniqueNewRecords
         return createPDFWithAllRecords(allRecords)
     }
 
-    // Crear un PDF con una lista combinada de RecordInfo
     private fun createPDFWithAllRecords(records: List<RecordInfo>): ByteArray {
         val outputStream = ByteArrayOutputStream()
         val userName = getUserDisplayName()
@@ -279,7 +230,6 @@ class PDFManager(private val context: Context) {
                         .setFontSize(10f)
                 )
 
-                // Crear tabla con todos los registros (incluyendo observaciones)
                 val table = Table(floatArrayOf(130f, 80f, 80f, 80f, 180f))
                     .setTextAlignment(TextAlignment.CENTER)
 
@@ -294,12 +244,11 @@ class PDFManager(private val context: Context) {
                     table.addCell(record.entryTime)
                     table.addCell(record.exitTime)
                     table.addCell(record.duration)
-                    table.addCell(record.comment)  // Añadir comentario
+                    table.addCell(record.comment)
                 }
 
                 document.add(table)
 
-                // Calcular la suma total de horas
                 var totalHours = 0
                 var totalMinutes = 0
 
@@ -313,7 +262,6 @@ class PDFManager(private val context: Context) {
                     }
                 }
 
-                // Convertir minutos excedentes a horas
                 totalHours += totalMinutes / 60
                 totalMinutes %= 60
 
@@ -361,14 +309,14 @@ class PDFManager(private val context: Context) {
     }
 
     private fun createTable(blocks: List<TimeRecordBlock>): Table {
-        val table = Table(floatArrayOf(130f, 80f, 80f, 80f, 180f))  // Añadir columna para observaciones
+        val table = Table(floatArrayOf(130f, 80f, 80f, 80f, 180f))
             .setTextAlignment(TextAlignment.CENTER)
 
         table.addHeaderCell("Fecha")
         table.addHeaderCell("Entrada")
         table.addHeaderCell("Salida")
         table.addHeaderCell("Duración")
-        table.addHeaderCell("Observaciones")  // Nueva columna
+        table.addHeaderCell("Observaciones")
 
         blocks.forEach { block ->
             table.addCell(dateFormat.format(block.date))
@@ -379,7 +327,6 @@ class PDFManager(private val context: Context) {
             val minutes = block.duration % 60
             table.addCell("${hours}h ${minutes}m")
 
-            // Añadir la observación si existe
             val comment = block.checkOut?.note ?: block.checkIn.note ?: ""
             table.addCell(comment)
         }
@@ -416,7 +363,6 @@ class PDFManager(private val context: Context) {
     }
 
     private fun saveLocalCopy(fileName: String, pdfData: ByteArray) {
-        // Guardar en directorio de la aplicación
         val appDir = context.getExternalFilesDir("pdfs") ?: context.filesDir
         if (!appDir.exists()) {
             appDir.mkdirs()

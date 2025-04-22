@@ -9,9 +9,9 @@ import android.view.View
 import android.view.animation.AnimationUtils
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.google.firebase.auth.FirebaseAuth
 import com.timetracking.app.R
 import com.timetracking.app.core.di.ServiceLocator
 import com.timetracking.app.databinding.ActivityMainBinding
@@ -87,20 +87,6 @@ class MainActivity : AppCompatActivity() {
         binding.historyButton.setOnClickListener {
             navigateToHistory()
         }
-
-        // Añadir funcionalidad de reinicio manual con pulsación larga
-        binding.mainContent.setOnLongClickListener {
-            AlertDialog.Builder(this)
-                .setTitle("Reiniciar estado")
-                .setMessage("¿Quieres reiniciar el estado de la aplicación? Esto es útil si el botón se ha quedado bloqueado.")
-                .setPositiveButton("Reiniciar") { _, _ ->
-                    viewModel.resetState()
-                    showToast("Estado reiniciado")
-                }
-                .setNegativeButton("Cancelar", null)
-                .show()
-            true
-        }
     }
 
     override fun onBackPressed() {
@@ -143,13 +129,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun logout() {
-        lifecycleScope.launch {
-            getSharedPreferences("auth_prefs", MODE_PRIVATE).edit().clear().apply()
-            showToast("Has cerrado sesión correctamente")
-            val intent = Intent(this@MainActivity, LoginActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-        }
+        // Cerrar sesión de Firebase
+        FirebaseAuth.getInstance().signOut()
+
+        // Limpiar preferencias de autenticación
+        getSharedPreferences("auth_prefs", MODE_PRIVATE).edit().clear().apply()
+
+        showToast("Has cerrado sesión correctamente")
+
+        val intent = Intent(this, LoginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP
+        startActivity(intent)
+        finish()
     }
 
     private fun showToast(message: String) {
