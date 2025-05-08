@@ -20,17 +20,20 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
+# ------------------- LOGGING -------------------
 # Keep SLF4J classes and interfaces
 -keep class org.slf4j.** { *; }
 -keep interface org.slf4j.** { *; }
 -dontwarn org.slf4j.**
 -dontwarn org.slf4j.impl.StaticLoggerBinder
 
-# iText rules (necesarias si usas iText para PDF)
+# ------------------- PDF GENERATION -------------------
+# iText rules para generación de PDF
 -keep class com.itextpdf.** { *; }
 -dontwarn com.itextpdf.**
 
-# OkHttp rules
+# ------------------- NETWORKING -------------------
+# OkHttp & Okio
 -keepattributes Signature
 -keepattributes *Annotation*
 -keep class okhttp3.** { *; }
@@ -38,25 +41,11 @@
 -dontwarn okhttp3.**
 -dontwarn okio.**
 
-# Coroutines
--keepclassmembernames class kotlinx.** { volatile <fields>; }
--keepclassmembernames class kotlin.coroutines.** { volatile <fields>; }
-
-# Room (Base de datos)
--keep class androidx.room.** { *; }
--keep interface androidx.room.** { *; }
-
-# Retrofit y Gson (para evitar eliminación de clases en respuestas API)
+# Retrofit y Gson
 -keep class retrofit2.** { *; }
 -keep interface retrofit2.** { *; }
 -dontwarn retrofit2.**
--dontwarn okhttp3.**
 -dontwarn com.google.gson.**
-
-# Mantener clases de modelos JSON
--keepclassmembers class * {
-    @com.google.gson.annotations.SerializedName <fields>;
-}
 
 # Evitar optimización agresiva de ProGuard en respuestas API
 -keepattributes Exceptions
@@ -65,7 +54,7 @@
 -keep,allowobfuscation interface * {
     @retrofit2.http.* <methods>;
 }
-# Preservar la firma genérica de Call y Response (R8 en modo completo elimina firmas de elementos no preservados)
+# Preservar la firma genérica de Call y Response
 -keep,allowobfuscation,allowshrinking interface retrofit2.Call
 -keep,allowobfuscation,allowshrinking class retrofit2.Response
 
@@ -74,28 +63,69 @@
 -keep class com.timetracking.app.core.network.AuthResponse { *; }
 -keep class com.timetracking.app.core.network.User { *; }
 
-# Proteger BuildConfig para acceso a API_KEY
--keep class com.timetracking.app.BuildConfig { *; }
+# ------------------- KOTLIN & COROUTINES -------------------
+# Coroutines
+-keepclassmembernames class kotlinx.** { volatile <fields>; }
+-keepclassmembernames class kotlin.coroutines.** { volatile <fields>; }
 
-# Reglas para OAuth/OpenID Connect
--keepattributes Signature, InnerClasses, EnclosingMethod
--keepattributes *Annotation*
+# ------------------- ROOM DATABASE -------------------
+# Room Database
+-keep class androidx.room.** { *; }
+-keep interface androidx.room.** { *; }
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-dontwarn androidx.room.paging.**
+
+# ------------------- ARCHITECTURE COMPONENTS -------------------
+# LiveData y ViewModel
+-keep class androidx.lifecycle.** { *; }
+
+# ------------------- JSON SERIALIZATION -------------------
+# Mantener clases de modelos JSON
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# ------------------- FIREBASE & GOOGLE -------------------
+# Firebase Auth completo
+-keep class com.google.firebase.** { *; }
+-keep class com.google.firebase.auth.** { *; }
+-keepclassmembers class com.google.firebase.auth.** { *; }
 
 # Mantener las clases de la biblioteca de autenticación de Google
 -keep class com.google.android.gms.auth.** { *; }
 -keep class com.google.android.gms.common.** { *; }
 -keep class com.google.android.gms.tasks.** { *; }
+-keep class com.google.android.gms.internal.** { *; }
 
 # Para Google Sign-In
 -keep class com.google.android.libraries.identity.googleid.** { *; }
 
-# Para Firebase Auth
--keep class com.google.firebase.auth.** { *; }
-
+# ------------------- ANDROID SPECIFICS -------------------
 # Para el manejo de credenciales de Android
 -keep class androidx.credentials.** { *; }
 -keep interface androidx.credentials.** { *; }
 
-# Mantener interfaces CallbackHandler y clases relacionadas
+# Proteger BuildConfig para acceso a API_KEY
+-keep class com.timetracking.app.BuildConfig { *; }
+
+# Mantener Parcelables
 -keepnames class * implements android.os.Parcelable
+-keep class * implements android.os.Parcelable {
+    public static final android.os.Parcelable$Creator *;
+}
+
+# Mantener Serializables
 -keepnames class * implements java.io.Serializable
+
+# ------------------- SECURITY -------------------
+# Reglas para OAuth/OpenID Connect
+-keepattributes Signature, InnerClasses, EnclosingMethod
+-keepattributes *Annotation*
+
+# ------------------- PLAY STORE COMPATIBILITY -------------------
+# Para evitar advertencias de seguridad en la Play Store
+-dontwarn android.security.NetworkSecurityPolicy
+-dontwarn javax.naming.**
+-dontwarn org.ietf.jgss.**
+-dontwarn java.awt.**

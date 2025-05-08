@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.tabs.TabLayout
 import com.timetracking.app.R
 import com.timetracking.app.TimeTrackingApp
@@ -104,12 +105,16 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
                     view.findViewById<TextView>(R.id.emptyStateText)?.visibility = View.VISIBLE
                     view.findViewById<TextView>(R.id.emptyStateText)?.text = "No hay semanas pendientes de exportar"
                     view.findViewById<MaterialButton>(R.id.exportButton)?.isEnabled = false
+                    // Ocultar el card de resumen semanal cuando no hay registros
+                    view.findViewById<MaterialCardView>(R.id.weekSummaryCard)?.visibility = View.GONE
                     return@launch
                 }
 
                 view.findViewById<RecyclerView>(R.id.recordsList)?.visibility = View.VISIBLE
                 view.findViewById<TextView>(R.id.emptyStateText)?.visibility = View.GONE
                 view.findViewById<MaterialButton>(R.id.exportButton)?.isEnabled = true
+                // Mostrar el card de resumen semanal cuando hay registros
+                view.findViewById<MaterialCardView>(R.id.weekSummaryCard)?.visibility = View.VISIBLE
 
                 // Formato para mostrar las fechas
                 val dateFormat = SimpleDateFormat("dd", Locale.getDefault())
@@ -151,6 +156,20 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
             val records = repository.getRecordsForWeek(currentWeekStart)
             val blocks = TimeRecordBlock.createBlocks(records)
             adapter.submitList(blocks)
+
+            // Calcular el total de minutos trabajados en la semana
+            var totalMinutes = 0L
+            blocks.forEach { block ->
+                totalMinutes += block.duration
+            }
+
+            // Convertir a formato de horas y minutos
+            val hours = totalMinutes / 60
+            val minutes = totalMinutes % 60
+
+            // Actualizar el TextView con el total semanal
+            view?.findViewById<TextView>(R.id.weeklyTotalText)?.text =
+                "Total semana: ${hours}h ${minutes}m"
         }
     }
 
@@ -188,14 +207,37 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
                         return@launch
                     }
 
-                    // Mostrar diálogo de confirmación
+                    // Calcular el total de horas para la semana actual
+                    val blocks = TimeRecordBlock.createBlocks(records)
+                    var totalMinutes = 0L
+                    blocks.forEach { block ->
+                        totalMinutes += block.duration
+                    }
+
+                    // Convertir a formato de horas y minutos
+                    val hours = totalMinutes / 60
+                    val minutes = totalMinutes % 60
+                    val totalTimeText = "${hours}h ${minutes}m"
+
+                    // Crear mensaje con formato HTML para poner el tiempo en negrita
+                    // Usar <br><br> para asegurar el salto de línea
+                    val message = "Tiempo total: <b>$totalTimeText</b><br><br>Una vez exportada, no podrás modificar esta semana. ¿Estás seguro de querer exportarla?"
+
+                    // Usar un SpannableString para mejor control sobre el formato
+                    val formattedMessage = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                        android.text.Html.fromHtml(message, android.text.Html.FROM_HTML_MODE_LEGACY)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        android.text.Html.fromHtml(message)
+                    }
+
+                    // Mostrar diálogo de confirmación con el total de horas en negrita
                     AlertDialog.Builder(requireContext())
                         .setTitle("Exportar semana")
-                        .setMessage("Una vez exportada, no podrás modificar esta semana. ¿Estás seguro de querer exportarla?")
+                        .setMessage(formattedMessage)
                         .setPositiveButton("Exportar") { _, _ ->
                             lifecycleScope.launch {
                                 try {
-                                    val blocks = TimeRecordBlock.createBlocks(records)
                                     PDFManager(requireContext()).createAndUploadPDF(blocks)
 
                                     // Marcar como exportada

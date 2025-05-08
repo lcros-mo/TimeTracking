@@ -32,7 +32,7 @@
         android:clipToPadding="false"
         android:layoutAnimation="@anim/layout_animation_fall_down"
         app:layout_constraintTop_toBottomOf="@id/weekTabs"
-        app:layout_constraintBottom_toTopOf="@id/exportButton"/>
+        app:layout_constraintBottom_toTopOf="@id/weekSummaryCard"/>
 
     <TextView
         android:id="@+id/emptyStateText"
@@ -45,6 +45,39 @@
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toTopOf="parent"/>
+
+    <!-- Nuevo Card para el resumen semanal -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/weekSummaryCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        app:layout_constraintBottom_toTopOf="@id/exportButton">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Resumen semanal"
+                android:textAppearance="?attr/textAppearanceSubtitle1"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/weeklyTotalText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textAppearance="?attr/textAppearanceBody1"
+                android:textColor="?attr/colorPrimary"
+                android:text="0h 0m"/>
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/exportButton"
@@ -61,7 +94,7 @@
         android:layout_margin="16dp"
         android:contentDescription="Añadir registro"
         android:src="@android:drawable/ic_input_add"
-        app:layout_constraintBottom_toTopOf="@id/exportButton"
+        app:layout_constraintBottom_toTopOf="@id/weekSummaryCard"
         app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

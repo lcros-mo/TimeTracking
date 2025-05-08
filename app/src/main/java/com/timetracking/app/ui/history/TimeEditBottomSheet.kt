@@ -15,9 +15,12 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
 import com.timetracking.app.R
 import com.timetracking.app.TimeTrackingApp
+import com.timetracking.app.core.data.model.RecordType
 import com.timetracking.app.core.data.model.TimeRecord
 import com.timetracking.app.core.data.repository.TimeRecordRepository
 import com.timetracking.app.core.data.model.TimeRecordBlock
+import com.timetracking.app.core.utils.DateTimeUtils
+import com.timetracking.app.core.utils.TimeRecordValidator
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -110,8 +113,15 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
             view.findViewById<TextView>(R.id.checkOutTime).apply {
                 text = getString(R.string.pending)
             }
-            view.findViewById<MaterialButton>(R.id.editCheckOutButton).isEnabled = false
+            view.findViewById<MaterialButton>(R.id.editCheckOutButton).apply {
+                isEnabled = true
+                setOnClickListener {
+                    showCompleteCheckOutDialog(block.checkIn)
+                }
+            }
         }
+        
+        
 
         // Configurar el campo de comentarios - MANTENER ESTO
         val commentInput = view.findViewById<TextInputEditText>(R.id.commentInput)
@@ -143,6 +153,40 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
         view.findViewById<MaterialButton>(R.id.deleteButton)?.setOnClickListener {
             showDeleteConfirmation(block)
         }
+    }
+
+    private fun showCompleteCheckOutDialog(checkIn: TimeRecord) {
+        val calendar = Calendar.getInstance()
+
+        TimePickerDialog(
+            requireContext(),
+            { _, hourOfDay, minute ->
+                lifecycleScope.launch {
+                    try {
+                        // Crear fecha de salida basada en la misma fecha que la entrada pero con la hora seleccionada
+                        val checkOutDate = DateTimeUtils.setTimeToDate(checkIn.date, hourOfDay, minute)
+
+                        // Validar que la hora sea posterior a la entrada
+                        val (isValid, errorMsg) = TimeRecordValidator.validateCheckOutTime(checkIn.date, checkOutDate)
+
+                        if (isValid) {
+                            // Crear un nuevo registro de salida
+                            repository.insertRecord(checkOutDate, RecordType.CHECK_OUT, checkIn.note)
+                            timeEditCallback?.onTimeUpdated()
+                            dismiss()
+                            Toast.makeText(context, "Registro completado", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            calendar.get(Calendar.HOUR_OF_DAY),
+            calendar.get(Calendar.MINUTE),
+            true
+        ).show()
     }
 
     private fun showTimePickerDialog(record: TimeRecord) {

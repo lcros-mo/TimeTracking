@@ -1,5 +1,6 @@
 package com.timetracking.app.core.utils
 
+import android.icu.util.Calendar
 import com.timetracking.app.core.data.model.RecordType
 import com.timetracking.app.core.data.model.TimeRecord
 import java.util.Date
@@ -26,8 +27,16 @@ object TimeRecordValidator {
 
     // Valida que la hora de salida sea posterior a la entrada
     fun validateCheckOutTime(checkInTime: Date, checkOutTime: Date): Pair<Boolean, String> {
-        return if (checkOutTime.before(checkInTime)) {
-            Pair(false, "La hora de salida no puede ser anterior a la de entrada")
+        // Extraer horas y minutos para comparación
+        val calIn = Calendar.getInstance().apply { time = checkInTime }
+        val calOut = Calendar.getInstance().apply { time = checkOutTime }
+
+        // Obtener los valores en minutos desde el inicio del día para comparar
+        val inMinutes = calIn.get(Calendar.HOUR_OF_DAY) * 60 + calIn.get(Calendar.MINUTE)
+        val outMinutes = calOut.get(Calendar.HOUR_OF_DAY) * 60 + calOut.get(Calendar.MINUTE)
+
+        return if (outMinutes <= inMinutes) {
+            Pair(false, "La hora de salida debe ser posterior a la de entrada")
         } else {
             Pair(true, "")
         }

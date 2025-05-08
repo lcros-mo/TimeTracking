@@ -150,8 +150,12 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
                             .maxByOrNull { it.date }
 
                         if (lastCheckIn != null) {
+                            // Limpiar las fechas antes de comparar para evitar problemas con segundos/milisegundos
+                            val cleanCheckInTime = DateTimeUtils.clearSeconds(lastCheckIn.date)
+                            val cleanCurrentTime = DateTimeUtils.clearSeconds(currentTime)
+
                             val (timeValid, timeErrorMsg) = TimeRecordValidator.validateCheckOutTime(
-                                lastCheckIn.date, currentTime
+                                cleanCheckInTime, cleanCurrentTime
                             )
 
                             if (!timeValid) {
