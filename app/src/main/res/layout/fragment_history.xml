@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/white">
@@ -14,7 +13,7 @@
         android:background="?attr/colorPrimary"
         app:layout_constraintTop_toTopOf="parent"
         app:navigationIcon="@drawable/ic_back"
-        app:title="Historial de Fichajes"
+        app:title="@string/history_title"
         app:titleTextColor="@android:color/white"/>
 
     <com.google.android.material.tabs.TabLayout
@@ -40,7 +39,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:padding="24dp"
-        android:text="No hay semanas pendientes de exportar"
+        android:text="@string/no_weeks_to_export"
         android:textSize="16sp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -63,7 +62,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Resumen semanal"
+                android:text="@string/weekly_summary"
                 android:textAppearance="?attr/textAppearanceSubtitle1"
                 android:textStyle="bold"/>
 
@@ -84,7 +83,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:text="Exportar Semana"
+        android:text="@string/export_week"
         app:layout_constraintBottom_toBottomOf="parent"/>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -92,7 +91,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:contentDescription="Añadir registro"
+        android:contentDescription="@string/add_record"
         android:src="@android:drawable/ic_input_add"
         app:layout_constraintBottom_toTopOf="@id/weekSummaryCard"
         app:layout_constraintEnd_toEndOf="parent" />

@@ -40,6 +40,7 @@ class TimeRecordBlockAdapter(
         private val checkOutTime: TextView = view.findViewById(R.id.checkOutTime)
         private val duration: TextView = view.findViewById(R.id.duration)
         private val exportStatus: TextView = view.findViewById(R.id.exportStatus)
+        private val context = view.context
 
         fun bind(block: TimeRecordBlock) {
             dateText.text = dateFormat.format(block.date)
@@ -49,10 +50,10 @@ class TimeRecordBlockAdapter(
                 checkOutTime.text = timeFormat.format(block.checkOut.date)
                 val hours = block.duration / 60
                 val minutes = block.duration % 60
-                duration.text = "Duración: ${hours}h ${minutes}m"
+                duration.text = context.getString(R.string.duration, hours, minutes)
             } else {
-                checkOutTime.text = "Pendiente"
-                duration.text = "En curso"
+                checkOutTime.text = context.getString(R.string.pending)
+                duration.text = context.getString(R.string.duration_in_progress)
             }
 
             // Mostrar estado de exportación

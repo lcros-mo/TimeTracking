@@ -35,7 +35,6 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
     companion object {
         private const val ARG_BLOCK = "arg_block"
 
-        @Suppress("DEPRECATION")
         fun newInstance(block: TimeRecordBlock, callback: Callback): TimeEditBottomSheet {
             return TimeEditBottomSheet().apply {
                 arguments = Bundle().apply {
@@ -120,8 +119,8 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
                 }
             }
         }
-        
-        
+
+
 
         // Configurar el campo de comentarios - MANTENER ESTO
         val commentInput = view.findViewById<TextInputEditText>(R.id.commentInput)
@@ -174,12 +173,12 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
                             repository.insertRecord(checkOutDate, RecordType.CHECK_OUT, checkIn.note)
                             timeEditCallback?.onTimeUpdated()
                             dismiss()
-                            Toast.makeText(context, "Registro completado", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, getString(R.string.record_completed), Toast.LENGTH_SHORT).show()
                         } else {
                             Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
                         }
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, getString(R.string.error_saving, e.message), Toast.LENGTH_SHORT).show()
                     }
                 }
             },
@@ -218,19 +217,19 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
                     repository.updateRecordNote(checkOut.id, comment)
                 }
 
-                Toast.makeText(context, "Observación guardada", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getString(R.string.note_saved), Toast.LENGTH_SHORT).show()
                 timeEditCallback?.onTimeUpdated()
             } catch (e: Exception) {
-                Toast.makeText(context, "Error al guardar: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getString(R.string.error_saving, e.message), Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     private fun showDeleteConfirmation(block: TimeRecordBlock) {
         AlertDialog.Builder(requireContext())
-            .setTitle("Eliminar registro")
-            .setMessage("¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.")
-            .setPositiveButton("Eliminar") { _, _ ->
+            .setTitle(R.string.delete_record)
+            .setMessage(R.string.delete_confirmation)
+            .setPositiveButton(R.string.delete) { _, _ ->
                 lifecycleScope.launch {
                     try {
                         if (block.checkOut != null) {
@@ -240,11 +239,11 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
                         timeEditCallback?.onRecordDeleted(block.checkIn.id)
                         dismiss()
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Error al eliminar: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, getString(R.string.error_deleting, e.message), Toast.LENGTH_SHORT).show()
                     }
                 }
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 }

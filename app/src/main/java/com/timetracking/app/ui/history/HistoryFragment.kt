@@ -103,7 +103,7 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
                 if (unexportedWeeks.isEmpty()) {
                     view.findViewById<RecyclerView>(R.id.recordsList)?.visibility = View.GONE
                     view.findViewById<TextView>(R.id.emptyStateText)?.visibility = View.VISIBLE
-                    view.findViewById<TextView>(R.id.emptyStateText)?.text = "No hay semanas pendientes de exportar"
+                    view.findViewById<TextView>(R.id.emptyStateText)?.text = getString(R.string.no_weeks_to_export)
                     view.findViewById<MaterialButton>(R.id.exportButton)?.isEnabled = false
                     // Ocultar el card de resumen semanal cuando no hay registros
                     view.findViewById<MaterialCardView>(R.id.weekSummaryCard)?.visibility = View.GONE
@@ -137,7 +137,7 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                showToast("Error al cargar semanas: ${e.message}")
+                showToast(getString(R.string.error_loading_weeks, e.message))
             }
         }
 
@@ -169,7 +169,7 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
 
             // Actualizar el TextView con el total semanal
             view?.findViewById<TextView>(R.id.weeklyTotalText)?.text =
-                "Total semana: ${hours}h ${minutes}m"
+                getString(R.string.weekly_total, hours, minutes)
         }
     }
 
@@ -181,7 +181,7 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
                 lifecycleScope.launch {
                     repository.updateRecordTime(record.id, hourOfDay, minute)
                     loadCurrentWeek()
-                    showToast("Registro actualizado")
+                    showToast(getString(R.string.record_updated))
                 }
             },
             calendar.get(Calendar.HOUR_OF_DAY),
@@ -197,13 +197,13 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
                     val canExport = repository.canExportWeek(currentWeekStart)
 
                     if (!canExport) {
-                        showToast("Debes exportar las semanas en orden cronológico")
+                        showToast(getString(R.string.must_export_in_order))
                         return@launch
                     }
 
                     val records = repository.getRecordsForWeek(currentWeekStart)
                     if (records.isEmpty()) {
-                        showToast("No hay registros para exportar en esta semana")
+                        showToast(getString(R.string.no_records_to_export))
                         return@launch
                     }
 
@@ -221,7 +221,7 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
 
                     // Crear mensaje con formato HTML para poner el tiempo en negrita
                     // Usar <br><br> para asegurar el salto de línea
-                    val message = "Tiempo total: <b>$totalTimeText</b><br><br>Una vez exportada, no podrás modificar esta semana. ¿Estás seguro de querer exportarla?"
+                    val message = getString(R.string.export_week_confirmation, totalTimeText)
 
                     // Usar un SpannableString para mejor control sobre el formato
                     val formattedMessage = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
@@ -233,9 +233,9 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
 
                     // Mostrar diálogo de confirmación con el total de horas en negrita
                     AlertDialog.Builder(requireContext())
-                        .setTitle("Exportar semana")
+                        .setTitle(R.string.export_week_title)
                         .setMessage(formattedMessage)
-                        .setPositiveButton("Exportar") { _, _ ->
+                        .setPositiveButton(R.string.export) { _, _ ->
                             lifecycleScope.launch {
                                 try {
                                     PDFManager(requireContext()).createAndUploadPDF(blocks)
@@ -243,20 +243,20 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
                                     // Marcar como exportada
                                     repository.markWeekAsExported(currentWeekStart)
 
-                                    showToast("Semana exportada correctamente")
+                                    showToast(getString(R.string.export_completed))
 
                                     // Actualizar las pestañas para reflejar cambios
                                     setupTabs(view)
                                 } catch (e: Exception) {
-                                    showToast("Error al exportar: ${e.message}")
+                                    showToast(getString(R.string.export_failed, e.message))
                                 }
                             }
                         }
-                        .setNegativeButton("Cancelar", null)
+                        .setNegativeButton(R.string.cancel, null)
                         .create()
                         .show()
                 } catch (e: Exception) {
-                    showToast("Error al verificar registros: ${e.message}")
+                    showToast(getString(R.string.error_verify_records, e.message))
                 }
             }
         }

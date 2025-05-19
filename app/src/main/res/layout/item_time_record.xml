@@ -22,31 +22,77 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:text="Lunes, 15 Nov"/>
 
-        <TextView
-            android:id="@+id/timeText"
+        <LinearLayout
+            android:id="@+id/checkInLayout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBody1"
-            android:textColor="?attr/colorPrimary"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/dateText"
-            tools:text="09:00"/>
+            app:layout_constraintTop_toBottomOf="@id/dateText">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/entry"
+                android:textAppearance="?attr/textAppearanceBody2"/>
+
+            <TextView
+                android:id="@+id/checkInTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textAppearance="?attr/textAppearanceBody1"
+                android:textColor="?attr/colorPrimary"
+                tools:text="09:00"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/checkOutLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginStart="32dp"
+            app:layout_constraintStart_toEndOf="@id/checkInLayout"
+            app:layout_constraintTop_toTopOf="@id/checkInLayout">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/exit"
+                android:textAppearance="?attr/textAppearanceBody2"/>
+
+            <TextView
+                android:id="@+id/checkOutTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textAppearance="?attr/textAppearanceBody1"
+                android:textColor="?attr/colorPrimary"
+                tools:text="14:00"/>
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/typeText"
+            android:id="@+id/duration"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:background="@drawable/rounded_type_background"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="2dp"
+            android:layout_marginTop="4dp"
             android:textAppearance="?attr/textAppearanceCaption"
-            app:layout_constraintBottom_toBottomOf="@id/timeText"
-            app:layout_constraintStart_toEndOf="@id/timeText"
-            app:layout_constraintTop_toTopOf="@id/timeText"
-            tools:text="ENTRADA"
-            tools:background="#E3F2FD"
-            tools:textColor="#1976D2"/>
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/checkInLayout"
+            tools:text="Duración: 5h 0m"/>
+
+        <TextView
+            android:id="@+id/exportStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/exported"
+            android:textColor="#4CAF50"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/checkInLayout" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
 </com.google.android.material.card.MaterialCardView>

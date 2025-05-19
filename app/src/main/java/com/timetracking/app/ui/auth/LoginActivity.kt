@@ -64,11 +64,11 @@ class LoginActivity : AppCompatActivity() {
                 if (account != null) {
                     firebaseAuthWithGoogle(account.idToken!!)
                 } else {
-                    Toast.makeText(this, "No se pudo obtener la cuenta de Google", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.error_loading_records, "No se pudo obtener la cuenta de Google"), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: ApiException) {
                 Log.e("LoginActivity", "Google sign in failed", e)
-                Toast.makeText(this, "Error al iniciar sesión con Google: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.error_loading_records, e.localizedMessage), Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -80,12 +80,12 @@ class LoginActivity : AppCompatActivity() {
                 if (task.isSuccessful) {
                     val user = auth.currentUser
                     Log.d("LoginActivity", "Login con Firebase OK: ${user?.email}")
-                    Toast.makeText(this, "Bienvenido, ${user?.displayName}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.welcome) + " " + user?.displayName, Toast.LENGTH_SHORT).show()
                     startActivity(Intent(this, MainActivity::class.java))
                     finish()
                 } else {
                     Log.e("LoginActivity", "signInWithCredential:failure", task.exception)
-                    Toast.makeText(this, "Fallo al autenticar con Firebase", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.error_loading_records, "Fallo al autenticar con Firebase"), Toast.LENGTH_SHORT).show()
                 }
             }
     }

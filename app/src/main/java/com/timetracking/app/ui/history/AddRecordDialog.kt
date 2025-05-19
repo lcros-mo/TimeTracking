@@ -2,12 +2,10 @@ package com.timetracking.app.ui.history
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.RadioButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
@@ -59,31 +57,28 @@ class AddRecordDialog : BottomSheetDialogFragment() {
             (requireActivity().application as TimeTrackingApp).database.timeRecordDao()
         )
 
+        // Actualizar las visualizaciones iniciales
         updateDateDisplay(view)
         updateCheckInTimeDisplay(view)
         updateCheckOutTimeDisplay(view)
 
-        // Configurar selector de fecha
+        // Configurar listeners
         view.findViewById<MaterialButton>(R.id.selectDateButton).setOnClickListener {
             showDatePicker()
         }
 
-        // Configurar selector de hora de entrada
         view.findViewById<MaterialButton>(R.id.selectTimeButton).setOnClickListener {
             showCheckInTimePicker()
         }
 
-        // Añadir nueva función para seleccionar hora de salida
         view.findViewById<MaterialButton>(R.id.selectCheckOutTimeButton).setOnClickListener {
             showCheckOutTimePicker()
         }
 
-        // Configurar botón guardar para crear ambos registros
         view.findViewById<MaterialButton>(R.id.saveButton).setOnClickListener {
-            saveRecords(view)
+            saveRecords()
         }
 
-        // Configurar botón cancelar
         view.findViewById<MaterialButton>(R.id.cancelButton).setOnClickListener {
             dismiss()
         }
@@ -156,7 +151,7 @@ class AddRecordDialog : BottomSheetDialogFragment() {
 
                 if (tempCalendar.before(selectedCheckInTime)) {
                     // Mostrar error si intenta establecer una salida antes de la entrada
-                    requireContext().showToast("La hora de salida debe ser posterior a la entrada")
+                    Toast.makeText(context, getString(R.string.error_exit_after_entry), Toast.LENGTH_SHORT).show()
                 } else {
                     selectedCheckOutTime.set(Calendar.HOUR_OF_DAY, hourOfDay)
                     selectedCheckOutTime.set(Calendar.MINUTE, minute)
@@ -169,7 +164,7 @@ class AddRecordDialog : BottomSheetDialogFragment() {
         ).show()
     }
 
-    private fun saveRecords(view: View) {
+    private fun saveRecords() {
         // Combinar fecha con hora de entrada
         val checkInDateTime = Calendar.getInstance().apply {
             set(
@@ -205,13 +200,8 @@ class AddRecordDialog : BottomSheetDialogFragment() {
                 callback?.onRecordAdded()
                 dismiss()
             } catch (e: Exception) {
-                requireContext().showToast("Error: ${e.message}")
+                Toast.makeText(context, getString(R.string.error_adding_record, e.message), Toast.LENGTH_SHORT).show()
             }
         }
     }
-}
-
-// Extension function para mostrar Toast
-fun Context.showToast(message: String, duration: Int = Toast.LENGTH_SHORT) {
-    Toast.makeText(this, message, duration).show()
 }

@@ -2,18 +2,23 @@ package com.timetracking.app.ui.home
 
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
+import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.view.animation.AnimationUtils
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.firebase.auth.FirebaseAuth
 import com.timetracking.app.R
 import com.timetracking.app.core.di.ServiceLocator
+import com.timetracking.app.core.utils.LanguageUtils
 import com.timetracking.app.databinding.ActivityMainBinding
 import com.timetracking.app.ui.auth.LoginActivity
 import com.timetracking.app.ui.history.HistoryFragment
@@ -87,6 +92,11 @@ class MainActivity : AppCompatActivity() {
         binding.historyButton.setOnClickListener {
             navigateToHistory()
         }
+
+        // Añadir listener para el botón de idioma
+        binding.languageButton.setOnClickListener {
+            showLanguageDialog()
+        }
     }
 
     override fun onBackPressed() {
@@ -102,7 +112,7 @@ class MainActivity : AppCompatActivity() {
         val anim = AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
         binding.checkButton.startAnimation(anim)
 
-        binding.checkButton.text = if (isCheckedIn) "SALIDA" else "ENTRADA"
+        binding.checkButton.text = if (isCheckedIn) getString(R.string.check_out) else getString(R.string.check_in)
 
         val colorFrom = getColor(if (isCheckedIn) R.color.button_entry else R.color.button_exit)
         val colorTo = getColor(if (isCheckedIn) R.color.button_exit else R.color.button_entry)
@@ -135,7 +145,7 @@ class MainActivity : AppCompatActivity() {
         // Limpiar preferencias de autenticación
         getSharedPreferences("auth_prefs", MODE_PRIVATE).edit().clear().apply()
 
-        showToast("Has cerrado sesión correctamente")
+        showToast(getString(R.string.logout_success))
 
         val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -150,5 +160,65 @@ class MainActivity : AppCompatActivity() {
             setGravity(Gravity.CENTER, 0, 0)
             show()
         }
+    }
+
+    /**
+     * Muestra el diálogo de selección de idioma
+     */
+    private fun showLanguageDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_language_selector, null)
+        val radioGroup = dialogView.findViewById<RadioGroup>(R.id.languageRadioGroup)
+        val spanishRadio = dialogView.findViewById<RadioButton>(R.id.spanishRadioButton)
+        val catalanRadio = dialogView.findViewById<RadioButton>(R.id.catalanRadioButton)
+
+        // Seleccionar el idioma actual
+        val currentLanguage = LanguageUtils.getSelectedLanguage(this)
+        when (currentLanguage) {
+            "es" -> spanishRadio.isChecked = true
+            "ca" -> catalanRadio.isChecked = true
+            else -> {
+                // Si no hay idioma seleccionado o es el del sistema, comprobar el idioma del sistema
+                when (resources.configuration.locales[0].language) {
+                    "ca" -> catalanRadio.isChecked = true
+                    else -> spanishRadio.isChecked = true // Por defecto español
+                }
+            }
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                // Guardar el idioma seleccionado
+                val languageCode = when (radioGroup.checkedRadioButtonId) {
+                    R.id.spanishRadioButton -> "es"
+                    R.id.catalanRadioButton -> "ca"
+                    else -> "" // Idioma del sistema
+                }
+
+                // Si el idioma ha cambiado, guardarlo y reiniciar la app completamente
+                if (languageCode != currentLanguage) {
+                    LanguageUtils.saveLanguage(this, languageCode)
+                    showConfirmRestartDialog()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+
+        dialog.show()
+    }
+
+    /**
+     * Muestra un diálogo de confirmación para reiniciar la app
+     */
+    private fun showConfirmRestartDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.language_changed)
+            .setMessage(R.string.restart_required)
+            .setPositiveButton(R.string.restart_now) { _, _ ->
+                // Reiniciar completamente la aplicación
+                LanguageUtils.restartApp(this)
+            }
+            .setCancelable(false)
+            .show()
     }
 }

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<spell-checker xmlns:android="http://schemas.android.com/apk/res/android"
+    android:label="@string/app_name">
+
+    <subtype
+        android:label="Español"
+        android:subtypeLocale="es"
+        android:subtypeExtraValue="SupportedLocales=es,es_ES" />
+
+    <subtype
+        android:label="Català"
+        android:subtypeLocale="ca"
+        android:subtypeExtraValue="SupportedLocales=ca,ca_ES" />
+
+</spell-checker>

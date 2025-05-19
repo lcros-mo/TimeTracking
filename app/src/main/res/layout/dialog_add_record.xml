@@ -10,7 +10,7 @@
         android:id="@+id/dialogTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Añadir nuevo registro"
+        android:text="@string/add_new_record"
         android:textAppearance="?attr/textAppearanceHeadline6"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -33,7 +33,7 @@
                 android:id="@+id/dateLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Fecha"
+                android:text="@string/date"
                 android:textAppearance="?attr/textAppearanceBody1"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -53,7 +53,7 @@
                 style="?attr/materialButtonOutlinedStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Elegir fecha"
+                android:text="@string/choose_date"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -62,25 +62,13 @@
     </com.google.android.material.card.MaterialCardView>
 
     <com.google.android.material.card.MaterialCardView
-        android:id="@+id/typeCard"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/dateCard">
-
-
-    </com.google.android.material.card.MaterialCardView>
-
-    <com.google.android.material.card.MaterialCardView
         android:id="@+id/timeCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/typeCard">
+        app:layout_constraintTop_toBottomOf="@id/dateCard">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -91,7 +79,7 @@
                 android:id="@+id/timeLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Hora de entrada"
+                android:text="@string/entry_time"
                 android:textAppearance="?attr/textAppearanceBody1"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -111,7 +99,7 @@
                 style="?attr/materialButtonOutlinedStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Elegir hora"
+                android:text="@string/choose_time"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -138,7 +126,7 @@
                 android:id="@+id/checkOutTimeLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Hora de salida"
+                android:text="@string/exit_time"
                 android:textAppearance="?attr/textAppearanceBody1"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -158,7 +146,7 @@
                 style="?attr/materialButtonOutlinedStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Elegir hora"
+                android:text="@string/choose_time"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -171,7 +159,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Guardar"
+        android:text="@string/save"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/checkOutTimeCard" />
@@ -182,7 +170,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Cancelar"
+        android:text="@string/cancel"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/saveButton" />

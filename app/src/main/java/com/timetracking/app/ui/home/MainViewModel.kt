@@ -4,6 +4,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.timetracking.app.R
+import com.timetracking.app.TimeTrackingApp
 import com.timetracking.app.core.data.model.RecordType
 import com.timetracking.app.core.data.model.TimeRecord
 import com.timetracking.app.core.data.repository.TimeRecordRepository
@@ -21,7 +23,7 @@ import java.util.*
 data class MainUiState(
     val isCheckedIn: Boolean = false,
     val checkInTime: Date? = null,
-    val lastCheckText: String = "Sin fichajes registrados",
+    val lastCheckText: String = "",
     val error: String? = null
 )
 
@@ -92,7 +94,7 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
                     _uiState.value = _uiState.value.copy(
                         isCheckedIn = false,
                         checkInTime = null,
-                        lastCheckText = "Sin fichajes registrados"
+                        lastCheckText = TimeTrackingApp.appContext.getString(R.string.no_records)
                     )
                     return@launch
                 }
@@ -100,17 +102,23 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
                 val sortedRecords = todayRecords.sortedBy { it.date }
                 val lastRecord = sortedRecords.last()
 
+                val lastCheckText = if (lastRecord.type == RecordType.CHECK_IN) {
+                    TimeTrackingApp.appContext.getString(R.string.last_check_in, formatTime(lastRecord.date))
+                } else {
+                    TimeTrackingApp.appContext.getString(R.string.last_check_out, formatTime(lastRecord.date))
+                }
+
                 _uiState.value = _uiState.value.copy(
                     isCheckedIn = lastRecord.type == RecordType.CHECK_IN,
                     checkInTime = if (lastRecord.type == RecordType.CHECK_IN) lastRecord.date else null,
-                    lastCheckText = "Último fichaje: ${if (lastRecord.type == RecordType.CHECK_IN) "Entrada" else "Salida"} a las ${formatTime(lastRecord.date)}"
+                    lastCheckText = lastCheckText
                 )
 
                 updateTodayTime()
                 updateWeeklyTime()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "Error al cargar el último estado: ${e.message}"
+                    error = TimeTrackingApp.appContext.getString(R.string.error_loading_last_state, e.message)
                 )
             }
         }
@@ -141,7 +149,7 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
                         _uiState.value = _uiState.value.copy(
                             isCheckedIn = true,
                             checkInTime = currentTime,
-                            lastCheckText = "Último fichaje: Entrada a las ${formatTime(currentTime)}"
+                            lastCheckText = TimeTrackingApp.appContext.getString(R.string.last_check_in, formatTime(currentTime))
                         )
                     }
                     RecordType.CHECK_OUT -> {
@@ -168,12 +176,12 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
                         _uiState.value = _uiState.value.copy(
                             isCheckedIn = false,
                             checkInTime = null,
-                            lastCheckText = "Último fichaje: Salida a las ${formatTime(currentTime)}"
+                            lastCheckText = TimeTrackingApp.appContext.getString(R.string.last_check_out, formatTime(currentTime))
                         )
                     }
                     null -> {
                         _uiState.value = _uiState.value.copy(
-                            error = "No se puede determinar la acción a realizar"
+                            error = TimeTrackingApp.appContext.getString(R.string.error_determine_action)
                         )
                         return@launch
                     }
@@ -183,7 +191,7 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
                 updateWeeklyTime()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "Error al procesar el fichaje: ${e.message}"
+                    error = TimeTrackingApp.appContext.getString(R.string.error_processing_check, e.message)
                 )
             }
         }
@@ -227,7 +235,7 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
                 _todayTime.value = TimeStats(hours, minutes, totalMinutes)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "Error al calcular tiempo diario: ${e.message}"
+                    error = TimeTrackingApp.appContext.getString(R.string.error_calculating_daily_time, e.message)
                 )
             }
         }
@@ -274,7 +282,7 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
                 _weeklyTime.value = TimeStats(hours, minutes, totalMinutes)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "Error al calcular tiempo semanal: ${e.message}"
+                    error = TimeTrackingApp.appContext.getString(R.string.error_calculating_weekly_time, e.message)
                 )
             }
         }

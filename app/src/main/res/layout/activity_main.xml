@@ -19,19 +19,29 @@
             android:id="@+id/userNameText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Bienvenido/a"
+            android:text="@string/welcome"
             android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/logoutButton" />
+            app:layout_constraintEnd_toStartOf="@id/languageButton" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/languageButton"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/ic_language"
+            android:contentDescription="@string/change_language"
+            app:layout_constraintEnd_toStartOf="@id/logoutButton"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/logoutButton"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Salir"
+            android:text="@string/logout"
             android:textColor="@color/text_secondary"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -53,7 +63,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Estado actual"
+                    android:text="@string/current_status"
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp" />
 
@@ -62,7 +72,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Sin fichajes hoy"
+                    android:text="@string/no_records_today"
                     android:textColor="@color/text_primary"
                     android:textSize="16sp" />
 
@@ -75,7 +85,7 @@
             android:id="@+id/checkButton"
             android:layout_width="180dp"
             android:layout_height="180dp"
-            android:text="ENTRADA"
+            android:text="@string/check_in"
             android:textSize="22sp"
             app:cornerRadius="90dp"
             android:insetTop="0dp"
@@ -109,7 +119,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Hoy"
+                        android:text="@string/today"
                         android:textColor="@color/text_secondary"
                         android:textSize="14sp" />
 
@@ -140,7 +150,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Esta semana"
+                        android:text="@string/this_week"
                         android:textColor="@color/text_secondary"
                         android:textSize="14sp" />
 
@@ -161,7 +171,7 @@
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Ver Historial"
+            android:text="@string/view_history"
             app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

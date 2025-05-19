@@ -1,6 +1,8 @@
 package com.timetracking.app.core.utils
 
 import android.icu.util.Calendar
+import com.timetracking.app.R
+import com.timetracking.app.TimeTrackingApp
 import com.timetracking.app.core.data.model.RecordType
 import com.timetracking.app.core.data.model.TimeRecord
 import java.util.Date
@@ -36,7 +38,7 @@ object TimeRecordValidator {
         val outMinutes = calOut.get(Calendar.HOUR_OF_DAY) * 60 + calOut.get(Calendar.MINUTE)
 
         return if (outMinutes <= inMinutes) {
-            Pair(false, "La hora de salida debe ser posterior a la de entrada")
+            Pair(false, TimeTrackingApp.appContext.getString(R.string.error_exit_after_entry))
         } else {
             Pair(true, "")
         }
