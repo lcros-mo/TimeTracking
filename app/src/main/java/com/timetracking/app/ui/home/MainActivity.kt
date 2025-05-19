@@ -2,9 +2,12 @@ package com.timetracking.app.ui.home
 
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
+import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.view.animation.AnimationUtils
@@ -42,11 +45,13 @@ class MainActivity : AppCompatActivity() {
 
         setupObservers()
         setupButtons()
+        updateUITexts()
     }
 
     override fun onResume() {
         super.onResume()
         viewModel.loadLastState()
+        updateUITexts()
     }
 
     private fun setupObservers() {
@@ -73,6 +78,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
+        // Configurar textos siempre
+        binding.checkButton.text = if (viewModel.uiState.value.isCheckedIn)
+            getString(R.string.check_out) else getString(R.string.check_in)
+        binding.logoutButton.text = getString(R.string.logout)
+        binding.historyButton.text = getString(R.string.view_history)
+        binding.userNameText.text = getString(R.string.welcome)
+
         binding.checkButton.setOnClickListener {
             if (!isProcessingClick) {
                 isProcessingClick = true
@@ -96,6 +108,21 @@ class MainActivity : AppCompatActivity() {
         // Añadir listener para el botón de idioma
         binding.languageButton.setOnClickListener {
             showLanguageDialog()
+        }
+    }
+
+    private fun updateUITexts() {
+        // Actualizar textos estáticos
+        binding.userNameText.text = getString(R.string.welcome)
+        binding.logoutButton.text = getString(R.string.logout)
+        binding.historyButton.text = getString(R.string.view_history)
+
+        // Actualizar el estado del botón principal
+        updateButtonState(viewModel.uiState.value.isCheckedIn)
+
+        // Otros textos
+        if (binding.lastCheckText.text.isEmpty()) {
+            binding.lastCheckText.text = getString(R.string.no_records_today)
         }
     }
 
@@ -155,6 +182,11 @@ class MainActivity : AppCompatActivity() {
         finish()
     }
 
+    override fun attachBaseContext(newBase: Context) {
+        val localizedContext = LanguageUtils.getLocalizedContext(newBase)
+        super.attachBaseContext(localizedContext)
+    }
+
     private fun showToast(message: String) {
         Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).apply {
             setGravity(Gravity.CENTER, 0, 0)
@@ -195,10 +227,15 @@ class MainActivity : AppCompatActivity() {
                     else -> "" // Idioma del sistema
                 }
 
-                // Si el idioma ha cambiado, guardarlo y reiniciar la app completamente
+                // Si el idioma ha cambiado, guardarlo y cambiar la UI inmediatamente
                 if (languageCode != currentLanguage) {
-                    LanguageUtils.saveLanguage(this, languageCode)
-                    showConfirmRestartDialog()
+                    // Aplicar el idioma y recrear la actividad
+                    LanguageUtils.applyLanguageAndRecreate(this, languageCode)
+
+                    // El diálogo de confirmación se mostrará después de recrear la actividad
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        showConfirmRestartDialog()
+                    }, 300) // Pequeño retraso para asegurar que la actividad se ha recreado
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)

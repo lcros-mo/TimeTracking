@@ -20,7 +20,10 @@ class TimeTrackingApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        appContext = applicationContext
+
+        // Aplicar el idioma seleccionado al contexto de la aplicación
+        val languageCode = LanguageUtils.getSelectedLanguage(this)
+        appContext = LanguageUtils.updateResources(this, languageCode)
 
         // Inicializar Firebase
         FirebaseApp.initializeApp(this)
@@ -30,19 +33,13 @@ class TimeTrackingApp : Application() {
     }
 
     override fun attachBaseContext(base: Context) {
-        // Aplicar el idioma seleccionado al contexto base
-        val languageCode = LanguageUtils.getSelectedLanguage(base)
-        val config = Configuration(base.resources.configuration)
-        LanguageUtils.setLocale(config, languageCode)
-        super.attachBaseContext(base.createConfigurationContext(config))
+        super.attachBaseContext(LanguageUtils.getLocalizedContext(base))
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         // Aplicar el idioma guardado a la nueva configuración
         val languageCode = LanguageUtils.getSelectedLanguage(this)
-        val config = Configuration(newConfig)
-        LanguageUtils.setLocale(config, languageCode)
-        resources.updateConfiguration(config, resources.displayMetrics)
+        LanguageUtils.updateResources(this, languageCode)
     }
 }

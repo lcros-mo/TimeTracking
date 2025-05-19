@@ -1,5 +1,6 @@
 package com.timetracking.app.ui.auth
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -13,6 +14,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.timetracking.app.R
+import com.timetracking.app.core.utils.LanguageUtils
 import com.timetracking.app.ui.home.MainActivity
 
 class LoginActivity : AppCompatActivity() {
@@ -51,6 +53,11 @@ class LoginActivity : AppCompatActivity() {
     private fun signIn() {
         val signInIntent = googleSignInClient.signInIntent
         startActivityForResult(signInIntent, RC_SIGN_IN)
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val localizedContext = LanguageUtils.getLocalizedContext(newBase)
+        super.attachBaseContext(localizedContext)
     }
 
     @Deprecated("Deprecated in Java")

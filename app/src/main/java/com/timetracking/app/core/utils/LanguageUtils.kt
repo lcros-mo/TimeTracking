@@ -6,8 +6,11 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.Build
+import android.os.Handler
 import android.os.LocaleList
+import android.os.Looper
 import android.os.Process
+import androidx.appcompat.app.AppCompatActivity
 import java.util.*
 
 /**
@@ -57,14 +60,64 @@ class LanguageUtils {
         }
 
         /**
+         * Actualiza recursos con el idioma seleccionado en tiempo de ejecución
+         * y devuelve un nuevo context con la configuración actualizada
+         */
+        fun updateResources(context: Context, languageCode: String): Context {
+            val locale = if (languageCode.isEmpty()) {
+                Resources.getSystem().configuration.locales[0]
+            } else {
+                Locale(languageCode)
+            }
+
+            Locale.setDefault(locale)
+
+            val configuration = Configuration(context.resources.configuration)
+
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                configuration.setLocales(LocaleList(locale))
+                context.createConfigurationContext(configuration)
+            } else {
+                @Suppress("DEPRECATION")
+                configuration.locale = locale
+                @Suppress("DEPRECATION")
+                context.resources.updateConfiguration(configuration, context.resources.displayMetrics)
+                context
+            }
+        }
+
+        /**
+         * Aplica el idioma a una actividad y la recrea para que los cambios surtan efecto
+         */
+        fun applyLanguageAndRecreate(activity: Activity, languageCode: String) {
+            saveLanguage(activity, languageCode)
+
+            // Si es una AppCompatActivity, usar recreate() que es más seguro
+            if (activity is AppCompatActivity) {
+                // Crear un intent para la misma actividad
+                val intent = activity.intent
+                activity.finish()
+                activity.startActivity(intent)
+                activity.overridePendingTransition(0, 0) // Sin animación
+            } else {
+                // Para otras actividades usar recreate() directamente
+                activity.recreate()
+            }
+        }
+
+        /**
+         * Establece el idioma base para una actividad (debe llamarse en attachBaseContext)
+         */
+        fun getLocalizedContext(baseContext: Context): Context {
+            val languageCode = getSelectedLanguage(baseContext)
+            return updateResources(baseContext, languageCode)
+        }
+
+        /**
          * Reinicia completamente la aplicación y borra todas las actividades
          * Este es el método más seguro para aplicar cambios de idioma
          */
         fun restartApp(activity: Activity) {
-            // Borrar la sesión activa para forzar una reinicialización completa
-            val authPrefs = activity.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-            authPrefs.edit().clear().apply()
-
             // Obtener el intent de inicio de la aplicación
             val packageManager = activity.packageManager
             val intent = packageManager.getLaunchIntentForPackage(activity.packageName)
@@ -78,9 +131,10 @@ class LanguageUtils {
             activity.finishAffinity() // Cierra todas las actividades de la app
             activity.startActivity(intent)
 
-            // Matar el proceso actual para asegurar un reinicio limpio
-            Process.killProcess(Process.myPid())
-            System.exit(0)
+            // Forzar un reinicio limpio después de un breve retraso
+            Handler(Looper.getMainLooper()).postDelayed({
+                Runtime.getRuntime().exit(0)
+            }, 100)
         }
     }
 }
