@@ -1,8 +1,8 @@
 package com.timetracking.app.core.utils
 
-import android.icu.util.Calendar
 import com.timetracking.app.R
 import com.timetracking.app.TimeTrackingApp
+import java.util.Calendar
 import com.timetracking.app.core.data.model.RecordType
 import com.timetracking.app.core.data.model.TimeRecord
 import java.util.Date

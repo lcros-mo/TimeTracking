@@ -56,31 +56,23 @@ class LanguageUtils {
             return config
         }
 
-        /**
-         * Reinicia completamente la aplicación y borra todas las actividades
-         * Este es el método más seguro para aplicar cambios de idioma
-         */
         fun restartApp(activity: Activity) {
-            // Borrar la sesión activa para forzar una reinicialización completa
-            val authPrefs = activity.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-            authPrefs.edit().clear().apply()
-
             // Obtener el intent de inicio de la aplicación
             val packageManager = activity.packageManager
             val intent = packageManager.getLaunchIntentForPackage(activity.packageName)
 
             // Asegurarse de que se inicia como una nueva tarea
             intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    Intent.FLAG_ACTIVITY_CLEAR_TASK)
+
+            // Finalizar la actividad actual
+            activity.finish()
 
             // Iniciar la actividad de inicio
-            activity.finishAffinity() // Cierra todas las actividades de la app
             activity.startActivity(intent)
 
-            // Matar el proceso actual para asegurar un reinicio limpio
-            Process.killProcess(Process.myPid())
-            System.exit(0)
+            // Terminar el proceso para asegurar un reinicio limpio
+            Runtime.getRuntime().exit(0)
         }
     }
 }

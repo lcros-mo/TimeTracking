@@ -139,18 +139,14 @@ class AddRecordDialog : BottomSheetDialogFragment() {
         TimePickerDialog(
             requireContext(),
             { _, hourOfDay, minute ->
-                // Validar que la hora de salida sea posterior a la entrada
-                val tempCalendar = Calendar.getInstance()
-                tempCalendar.set(
-                    selectedDate.get(Calendar.YEAR),
-                    selectedDate.get(Calendar.MONTH),
-                    selectedDate.get(Calendar.DAY_OF_MONTH),
-                    hourOfDay,
-                    minute
-                )
+                // Comparar solo las horas del mismo día
+                val checkInHour = selectedCheckInTime.get(Calendar.HOUR_OF_DAY)
+                val checkInMinute = selectedCheckInTime.get(Calendar.MINUTE)
 
-                if (tempCalendar.before(selectedCheckInTime)) {
-                    // Mostrar error si intenta establecer una salida antes de la entrada
+                val checkInTotalMinutes = checkInHour * 60 + checkInMinute
+                val checkOutTotalMinutes = hourOfDay * 60 + minute
+
+                if (checkOutTotalMinutes <= checkInTotalMinutes) {
                     Toast.makeText(context, getString(R.string.error_exit_after_entry), Toast.LENGTH_SHORT).show()
                 } else {
                     selectedCheckOutTime.set(Calendar.HOUR_OF_DAY, hourOfDay)

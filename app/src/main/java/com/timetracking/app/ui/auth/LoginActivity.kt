@@ -1,6 +1,7 @@
 package com.timetracking.app.ui.auth
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -13,6 +14,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.timetracking.app.R
+import com.timetracking.app.core.utils.LanguageUtils
 import com.timetracking.app.ui.home.MainActivity
 
 class LoginActivity : AppCompatActivity() {
@@ -23,12 +25,17 @@ class LoginActivity : AppCompatActivity() {
     private val RC_SIGN_IN = 9001
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Aplicar idioma antes de setContentView
+        val languageCode = LanguageUtils.getSelectedLanguage(this)
+        val config = Configuration(resources.configuration)
+        LanguageUtils.setLocale(config, languageCode)
+        resources.updateConfiguration(config, resources.displayMetrics)
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
         auth = FirebaseAuth.getInstance()
 
-        // ✅ Si ya hay usuario logueado, saltamos a MainActivity
         if (auth.currentUser != null) {
             Log.d("LoginActivity", "Usuario ya autenticado: ${auth.currentUser?.email}")
             startActivity(Intent(this, MainActivity::class.java))
