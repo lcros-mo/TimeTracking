@@ -9,103 +9,103 @@
     <string name="oauth_token_endpoint">https://oauth2.googleapis.com/token</string>
 
     <!-- Estados de registro -->
-    <string name="pending">Pendiente</string>
+    <string name="pending">Pendent</string>
 
     <!-- Pantalla de login -->
-    <string name="welcome_to">Bienvenido/a a</string>
-    <string name="login_to_continue">Inicia sesión para continuar</string>
-    <string name="sign_in_with_google">Iniciar sesión con Google</string>
-    <string name="app_logo_content_description">Logo de la aplicación</string>
-    <string name="change_language">Cambiar idioma</string>
+    <string name="welcome_to">Benvingut/da a</string>
+    <string name="login_to_continue">Inicia sessió per continuar</string>
+    <string name="sign_in_with_google">Iniciar sessió amb Google</string>
+    <string name="app_logo_content_description">Logo de l\'aplicació</string>
+    <string name="change_language">Canviar idioma</string>
 
     <!-- Pantalla principal -->
-    <string name="welcome">Bienvenido/a</string>
-    <string name="logout">Salir</string>
-    <string name="current_status">Estado actual</string>
-    <string name="no_records_today">Sin fichajes hoy</string>
+    <string name="welcome">Benvingut/da</string>
+    <string name="logout">Sortir</string>
+    <string name="current_status">Estat actual</string>
+    <string name="no_records_today">Sense fitxatges avui</string>
     <string name="check_in">ENTRADA</string>
-    <string name="check_out">SALIDA</string>
-    <string name="today">Hoy</string>
-    <string name="this_week">Esta semana</string>
-    <string name="view_history">Ver Historial</string>
-    <string name="last_check_in">Último fichaje: Entrada a las %1$s</string>
-    <string name="last_check_out">Último fichaje: Salida a las %1$s</string>
-    <string name="no_records">Sin fichajes registrados</string>
+    <string name="check_out">SORTIDA</string>
+    <string name="today">Avui</string>
+    <string name="this_week">Aquesta setmana</string>
+    <string name="view_history">Veure Historial</string>
+    <string name="last_check_in">Darrer fitxatge: Entrada a les %1$s</string>
+    <string name="last_check_out">Darrer fitxatge: Sortida a les %1$s</string>
+    <string name="no_records">Sense fitxatges registrats</string>
     <string name="hours_minutes_format">%1$dh %2$dm</string>
-    <string name="logout_success">Has cerrado sesión correctamente</string>
+    <string name="logout_success">Has tancat sessió correctament</string>
 
     <!-- Pantalla de historial -->
-    <string name="history_title">Historial de Fichajes</string>
-    <string name="no_weeks_to_export">No hay semanas pendientes de exportar</string>
-    <string name="weekly_summary">Resumen semanal</string>
-    <string name="export_week">Exportar Semana</string>
-    <string name="add_record">Añadir registro</string>
-    <string name="weekly_total">Total semana: %1$dh %2$dm</string>
-    <string name="exported">Exportado</string>
+    <string name="history_title">Historial de Fitxatges</string>
+    <string name="no_weeks_to_export">No hi ha setmanes pendents d\'exportar</string>
+    <string name="weekly_summary">Resum setmanal</string>
+    <string name="export_week">Exportar Setmana</string>
+    <string name="add_record">Afegir registre</string>
+    <string name="weekly_total">Total setmana: %1$dh %2$dm</string>
+    <string name="exported">Exportat</string>
     <string name="entry">Entrada:</string>
-    <string name="exit">Salida:</string>
-    <string name="duration">Duración: %1$dh %2$dm</string>
-    <string name="duration_in_progress">En curso</string>
+    <string name="exit">Sortida:</string>
+    <string name="duration">Durada: %1$dh %2$dm</string>
+    <string name="duration_in_progress">En curs</string>
 
     <!-- Diálogos -->
-    <string name="delete_record">Eliminar registro</string>
-    <string name="delete_confirmation">¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.</string>
+    <string name="delete_record">Eliminar registre</string>
+    <string name="delete_confirmation">Estàs segur que vols eliminar aquest registre? Aquesta acció no es pot desfer.</string>
     <string name="delete">Eliminar</string>
-    <string name="cancel">Cancelar</string>
-    <string name="record_added">Registro añadido correctamente</string>
-    <string name="record_deleted">Registro eliminado correctamente</string>
-    <string name="add_new_record">Añadir nuevo registro</string>
-    <string name="date">Fecha</string>
-    <string name="choose_date">Elegir fecha</string>
-    <string name="entry_time">Hora de entrada</string>
-    <string name="exit_time">Hora de salida</string>
-    <string name="choose_time">Elegir hora</string>
+    <string name="cancel">Cancel·lar</string>
+    <string name="record_added">Registre afegit correctament</string>
+    <string name="record_deleted">Registre eliminat correctament</string>
+    <string name="add_new_record">Afegir nou registre</string>
+    <string name="date">Data</string>
+    <string name="choose_date">Triar data</string>
+    <string name="entry_time">Hora d\'entrada</string>
+    <string name="exit_time">Hora de sortida</string>
+    <string name="choose_time">Triar hora</string>
     <string name="save">Guardar</string>
-    <string name="notes">Observaciones</string>
-    <string name="add_note_optional">Añadir observación (opcional)</string>
-    <string name="note_saved">Observación guardada</string>
+    <string name="notes">Observacions</string>
+    <string name="add_note_optional">Afegir observació (opcional)</string>
+    <string name="note_saved">Observació guardada</string>
     <string name="edit">Editar</string>
 
     <!-- Exportación PDF -->
-    <string name="export_week_title">Exportar semana</string>
-    <string name="export_week_confirmation">Tiempo total: &lt;b>%1$s&lt;/b>&lt;br>&lt;br>Una vez exportada, no podrás modificar esta semana. ¿Estás seguro de querer exportarla?</string>
+    <string name="export_week_title">Exportar setmana</string>
+    <string name="export_week_confirmation">Temps total: &lt;b>%1$s&lt;/b>&lt;br>&lt;br>Un cop exportada, no podràs modificar aquesta setmana. Estàs segur de voler exportar-la?</string>
     <string name="export">Exportar</string>
-    <string name="export_completed">Semana exportada correctamente</string>
-    <string name="export_failed">Error al exportar: %1$s</string>
+    <string name="export_completed">Setmana exportada correctament</string>
+    <string name="export_failed">Error en exportar: %1$s</string>
     <string name="total_time">Total: %1$dh %2$dm</string>
-    <string name="no_records_to_export">No hay registros para exportar</string>
-    <string name="must_export_in_order">Debes exportar las semanas en orden cronológico</string>
+    <string name="no_records_to_export">No hi ha registres per exportar</string>
+    <string name="must_export_in_order">Has d\'exportar les setmanes en ordre cronològic</string>
 
     <!-- Mensajes de error y validación -->
-    <string name="error_loading_weeks">Error al cargar semanas: %1$s</string>
-    <string name="error_loading_records">Error al cargar registros: %1$s</string>
-    <string name="error_updating_record">Error al actualizar registro: %1$s</string>
-    <string name="error_deleting_record">Error al eliminar registro: %1$s</string>
-    <string name="error_adding_record">Error al añadir registro: %1$s</string>
+    <string name="error_loading_weeks">Error al carregar setmanes: %1$s</string>
+    <string name="error_loading_records">Error al carregar registres: %1$s</string>
+    <string name="error_updating_record">Error al actualitzar registre: %1$s</string>
+    <string name="error_deleting_record">Error al eliminar registre: %1$s</string>
+    <string name="error_adding_record">Error al afegir registre: %1$s</string>
     <string name="error_exporting">Error al exportar: %1$s</string>
-    <string name="error_processing_check">Error al procesar el fichaje: %1$s</string>
-    <string name="error_calculating_daily_time">Error al calcular tiempo diario: %1$s</string>
-    <string name="error_calculating_weekly_time">Error al calcular tiempo semanal: %1$s</string>
-    <string name="error_loading_last_state">Error al cargar el último estado: %1$s</string>
-    <string name="error_exit_after_entry">La hora de salida debe ser posterior a la de entrada</string>
-    <string name="error_determine_action">No se puede determinar la acción a realizar</string>
-    <string name="record_updated">Registro actualizado</string>
-    <string name="record_completed">Registro completado</string>
+    <string name="error_processing_check">Error al processar el fitxatge: %1$s</string>
+    <string name="error_calculating_daily_time">Error al calcular temps diari: %1$s</string>
+    <string name="error_calculating_weekly_time">Error al calcular temps setmanal: %1$s</string>
+    <string name="error_loading_last_state">Error al carregar l\'últim estat: %1$s</string>
+    <string name="error_exit_after_entry">L\'hora de sortida ha de ser posterior a la d\'entrada</string>
+    <string name="error_determine_action">No es pot determinar l\'acció a realitzar</string>
+    <string name="record_updated">Registre actualitzat</string>
+    <string name="record_completed">Registre completat</string>
     <string name="error_saving">Error al guardar: %1$s</string>
     <string name="error_deleting">Error al eliminar: %1$s</string>
-    <string name="error_verify_records">Error al verificar registros: %1$s</string>
+    <string name="error_verify_records">Error al verificar registres: %1$s</string>
 
     <!-- Selector de idioma -->
     <string name="select_language">Seleccionar idioma</string>
     <string name="spanish">Español</string>
     <string name="catalan">Català</string>
-    <string name="language_changed">Idioma cambiado</string>
-    <string name="restart_required">Es necesario reiniciar la aplicación para aplicar el nuevo idioma.</string>
-    <string name="restart_now">Reiniciar ahora</string>
+    <string name="language_changed">Idioma canviat</string>
+    <string name="restart_required">Cal reiniciar l\'aplicació per aplicar el nou idioma.</string>
+    <string name="restart_now">Reiniciar ara</string>
 
     <!-- Dialog de login -->
-    <string name="login_title">Iniciar sesión</string>
-    <string name="login_subtitle">Introduce tu correo institucional para acceder</string>
-    <string name="email">Correo electrónico</string>
-    <string name="login">Iniciar sesión</string>
+    <string name="login_title">Iniciar sessió</string>
+    <string name="login_subtitle">Introdueix el teu correu institucional per accedir</string>
+    <string name="email">Correu electrònic</string>
+    <string name="login">Iniciar sessió</string>
 </resources>
