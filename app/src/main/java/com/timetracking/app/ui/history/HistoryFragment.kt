@@ -1,81 +1,65 @@
 package com.timetracking.app.ui.history
 
-import android.app.TimePickerDialog
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.appbar.MaterialToolbar
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.card.MaterialCardView
 import com.google.android.material.tabs.TabLayout
 import com.timetracking.app.R
-import com.timetracking.app.TimeTrackingApp
-import com.timetracking.app.core.data.model.TimeRecord
-import com.timetracking.app.core.data.repository.TimeRecordRepository
+import com.timetracking.app.core.di.ServiceLocator
+import com.timetracking.app.databinding.FragmentHistoryBinding
 import com.timetracking.app.ui.history.adapter.TimeRecordBlockAdapter
-import com.timetracking.app.core.data.model.TimeRecordBlock
-import com.timetracking.app.core.utils.DateTimeUtils
-import com.timetracking.app.core.utils.PDFManager
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 
 class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
-    private lateinit var repository: TimeRecordRepository
+
+    private var _binding: FragmentHistoryBinding? = null
+    private val binding get() = _binding!!
+
+    // Usar ViewModel con el factory de ServiceLocator
+    private val viewModel: HistoryViewModel by viewModels {
+        ServiceLocator.provideHistoryViewModelFactory(requireContext())
+    }
+
     private lateinit var adapter: TimeRecordBlockAdapter
-    private lateinit var weekTabs: TabLayout
-    private var currentWeekStart: Date = DateTimeUtils.getStartOfWeek(Date())
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_history, container, false)
+    ): View {
+        _binding = FragmentHistoryBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        repository = TimeRecordRepository((requireActivity().application as TimeTrackingApp).database.timeRecordDao())
-
-        setupToolbar(view)
-        setupRecyclerView(view)
-        setupTabs(view)
-        setupExportButton(view)
-        setupAddRecordButton(view)
-        loadCurrentWeek()
+        setupUI()
+        observeViewModel()
     }
 
-    private fun setupToolbar(view: View) {
-        view.findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener {
+    private fun setupUI() {
+        setupToolbar()
+        setupRecyclerView()
+        setupTabs()
+        setupButtons()
+    }
+
+    private fun setupToolbar() {
+        binding.toolbar.setNavigationOnClickListener {
             requireActivity().onBackPressed()
         }
     }
 
-    private fun setupAddRecordButton(view: View) {
-        view.findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.addRecordButton).setOnClickListener {
-            // Mostrar el diálogo para añadir un nuevo registro
-            AddRecordDialog.newInstance(object : AddRecordDialog.Callback {
-                override fun onRecordAdded() {
-                    loadCurrentWeek()
-                    setupTabs(view)
-                }
-            }).show(childFragmentManager, "addRecord")
-        }
-    }
-
-    private fun setupRecyclerView(view: View) {
-        val recyclerView = view.findViewById<RecyclerView>(R.id.recordsList)
+    private fun setupRecyclerView() {
         adapter = TimeRecordBlockAdapter(
             onCheckInClick = { record ->
                 showTimeEditDialog(record)
@@ -84,180 +68,174 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
                 showTimeEditDialog(record)
             },
             onBlockUpdated = {
-                loadCurrentWeek()
+                viewModel.loadAvailableWeeks()
             }
         )
-        recyclerView.adapter = adapter
-        recyclerView.layoutManager = LinearLayoutManager(context)
+
+        binding.recordsList.apply {
+            adapter = this@HistoryFragment.adapter
+            layoutManager = LinearLayoutManager(context)
+        }
     }
 
-    private fun setupTabs(view: View) {
-        weekTabs = view.findViewById(R.id.weekTabs)
-        weekTabs.removeAllTabs() // Limpiar pestañas existentes
-
-        lifecycleScope.launch {
-            try {
-                // Obtener solo semanas no exportadas (máximo 3)
-                val unexportedWeeks = repository.getUnexportedWeeks()
-
-                if (unexportedWeeks.isEmpty()) {
-                    view.findViewById<RecyclerView>(R.id.recordsList)?.visibility = View.GONE
-                    view.findViewById<TextView>(R.id.emptyStateText)?.visibility = View.VISIBLE
-                    view.findViewById<TextView>(R.id.emptyStateText)?.text = getString(R.string.no_weeks_to_export)
-                    view.findViewById<MaterialButton>(R.id.exportButton)?.isEnabled = false
-                    // Ocultar el card de resumen semanal cuando no hay registros
-                    view.findViewById<MaterialCardView>(R.id.weekSummaryCard)?.visibility = View.GONE
-                    return@launch
-                }
-
-                view.findViewById<RecyclerView>(R.id.recordsList)?.visibility = View.VISIBLE
-                view.findViewById<TextView>(R.id.emptyStateText)?.visibility = View.GONE
-                view.findViewById<MaterialButton>(R.id.exportButton)?.isEnabled = true
-                // Mostrar el card de resumen semanal cuando hay registros
-                view.findViewById<MaterialCardView>(R.id.weekSummaryCard)?.visibility = View.VISIBLE
-
-                // Formato para mostrar las fechas
-                val dateFormat = SimpleDateFormat("dd", Locale.getDefault())
-                val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
-
-                // Crear pestañas para cada semana no exportada
-                unexportedWeeks.forEach { weekStart ->
-                    val endOfWeek = DateTimeUtils.addDays(weekStart, 6)
-                    val tabText = "${dateFormat.format(weekStart)}-${dateFormat.format(endOfWeek)} ${monthFormat.format(endOfWeek)}"
-
-                    weekTabs.addTab(weekTabs.newTab().apply {
-                        text = tabText
-                        tag = weekStart.time
-                    })
-                }
-
-                // Seleccionar la pestaña más reciente
-                if (weekTabs.tabCount > 0) {
-                    weekTabs.selectTab(weekTabs.getTabAt(weekTabs.tabCount - 1))
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                showToast(getString(R.string.error_loading_weeks, e.message))
-            }
-        }
-
-        weekTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+    private fun setupTabs() {
+        binding.weekTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
-                currentWeekStart = Date(tab.tag as Long)
-                loadCurrentWeek()
+                val weekStart = tab.tag as? Long ?: return
+                viewModel.loadWeekRecords(java.util.Date(weekStart))
             }
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
     }
 
-    private fun loadCurrentWeek() {
-        lifecycleScope.launch {
-            val records = repository.getRecordsForWeek(currentWeekStart)
-            val blocks = TimeRecordBlock.createBlocks(records)
-            adapter.submitList(blocks)
+    private fun setupButtons() {
+        binding.exportButton.setOnClickListener {
+            showExportConfirmation()
+        }
 
-            // Calcular el total de minutos trabajados en la semana
-            var totalMinutes = 0L
-            blocks.forEach { block ->
-                totalMinutes += block.duration
-            }
-
-            // Convertir a formato de horas y minutos
-            val hours = totalMinutes / 60
-            val minutes = totalMinutes % 60
-
-            // Actualizar el TextView con el total semanal
-            view?.findViewById<TextView>(R.id.weeklyTotalText)?.text =
-                getString(R.string.weekly_total, hours, minutes)
+        binding.addRecordButton.setOnClickListener {
+            AddRecordDialog.newInstance(object : AddRecordDialog.Callback {
+                override fun onRecordAdded() {
+                    viewModel.loadAvailableWeeks()
+                }
+            }).show(childFragmentManager, "addRecord")
         }
     }
 
-    private fun showTimeEditDialog(record: TimeRecord) {
-        val calendar = Calendar.getInstance().apply { time = record.date }
-        TimePickerDialog(
-            requireContext(),
-            { _, hourOfDay, minute ->
-                lifecycleScope.launch {
-                    repository.updateRecordTime(record.id, hourOfDay, minute)
-                    loadCurrentWeek()
-                    showToast(getString(R.string.record_updated))
+    private fun observeViewModel() {
+        // Observar estado general de UI
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.uiState.collect { state ->
+                // Mostrar/ocultar loading
+                binding.recordsList.visibility = if (state.isLoading) View.GONE else View.VISIBLE
+
+                // Mostrar mensajes de error
+                state.error?.let {
+                    showToast(it)
+                    viewModel.clearMessages()
                 }
-            },
-            calendar.get(Calendar.HOUR_OF_DAY),
-            calendar.get(Calendar.MINUTE),
-            true
-        ).show()
+
+                // Mostrar mensajes de éxito
+                state.message?.let {
+                    showToast(it)
+                    viewModel.clearMessages()
+                }
+
+                // Actualizar estado del botón de exportar
+                binding.exportButton.isEnabled = !state.isLoading && !state.isExporting
+            }
+        }
+
+        // Observar semanas disponibles
+        viewModel.availableWeeks.observe(viewLifecycleOwner) { weeks ->
+            updateWeekTabs(weeks)
+        }
+
+        // Observar bloques de tiempo
+        viewModel.timeBlocks.observe(viewLifecycleOwner) { blocks ->
+            adapter.submitList(blocks)
+            updateWeeklySummary(blocks)
+        }
     }
 
-    private fun setupExportButton(view: View) {
-        view.findViewById<MaterialButton>(R.id.exportButton).setOnClickListener {
-            lifecycleScope.launch {
-                try {
-                    val canExport = repository.canExportWeek(currentWeekStart)
+    private fun updateWeekTabs(weeks: List<WeekData>) {
+        binding.weekTabs.removeAllTabs()
 
-                    if (!canExport) {
-                        showToast(getString(R.string.must_export_in_order))
-                        return@launch
-                    }
+        if (weeks.isEmpty()) {
+            binding.recordsList.visibility = View.GONE
+            binding.emptyStateText.visibility = View.VISIBLE
+            binding.exportButton.isEnabled = false
+            binding.weekSummaryCard.visibility = View.GONE
+            return
+        }
 
-                    val records = repository.getRecordsForWeek(currentWeekStart)
-                    if (records.isEmpty()) {
-                        showToast(getString(R.string.no_records_to_export))
-                        return@launch
-                    }
+        binding.recordsList.visibility = View.VISIBLE
+        binding.emptyStateText.visibility = View.GONE
+        binding.exportButton.isEnabled = true
+        binding.weekSummaryCard.visibility = View.VISIBLE
 
-                    // Calcular el total de horas para la semana actual
-                    val blocks = TimeRecordBlock.createBlocks(records)
-                    var totalMinutes = 0L
-                    blocks.forEach { block ->
-                        totalMinutes += block.duration
-                    }
+        // Agregar pestañas para cada semana
+        weeks.forEach { week ->
+            binding.weekTabs.addTab(binding.weekTabs.newTab().apply {
+                text = week.displayText
+                tag = week.startDate.time
+            })
+        }
 
-                    // Convertir a formato de horas y minutos
-                    val hours = totalMinutes / 60
-                    val minutes = totalMinutes % 60
-                    val totalTimeText = "${hours}h ${minutes}m"
+        // Seleccionar la pestaña más reciente
+        if (binding.weekTabs.tabCount > 0) {
+            binding.weekTabs.selectTab(binding.weekTabs.getTabAt(binding.weekTabs.tabCount - 1))
+        }
+    }
 
-                    // Crear mensaje con formato HTML para poner el tiempo en negrita
-                    // Usar <br><br> para asegurar el salto de línea
-                    val message = getString(R.string.export_week_confirmation, totalTimeText)
+    private fun updateWeeklySummary(blocks: List<com.timetracking.app.core.data.model.TimeRecordBlock>) {
+        var totalMinutes = 0L
+        blocks.forEach { block ->
+            totalMinutes += block.duration
+        }
 
-                    // Usar un SpannableString para mejor control sobre el formato
-                    val formattedMessage = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                        android.text.Html.fromHtml(message, android.text.Html.FROM_HTML_MODE_LEGACY)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        android.text.Html.fromHtml(message)
-                    }
+        val hours = totalMinutes / 60
+        val minutes = totalMinutes % 60
 
-                    // Mostrar diálogo de confirmación con el total de horas en negrita
-                    AlertDialog.Builder(requireContext())
-                        .setTitle(R.string.export_week_title)
-                        .setMessage(formattedMessage)
-                        .setPositiveButton(R.string.export) { _, _ ->
-                            lifecycleScope.launch {
-                                try {
-                                    PDFManager(requireContext()).createAndUploadPDF(blocks)
+        binding.weeklyTotalText.text = getString(R.string.weekly_total, hours, minutes)
+    }
 
-                                    // Marcar como exportada
-                                    repository.markWeekAsExported(currentWeekStart)
+    private fun showTimeEditDialog(record: com.timetracking.app.core.data.model.TimeRecord) {
+        // Buscar el bloque completo que contiene este registro
+        val currentBlocks = viewModel.timeBlocks.value ?: return
+        val block = currentBlocks.find {
+            it.checkIn.id == record.id || it.checkOut?.id == record.id
+        } ?: return
 
-                                    showToast(getString(R.string.export_completed))
+        TimeEditBottomSheet.newInstance(block, this)
+            .show(childFragmentManager, "timeEdit")
+    }
 
-                                    // Actualizar las pestañas para reflejar cambios
-                                    setupTabs(view)
-                                } catch (e: Exception) {
-                                    showToast(getString(R.string.export_failed, e.message))
-                                }
-                            }
-                        }
-                        .setNegativeButton(R.string.cancel, null)
-                        .create()
-                        .show()
-                } catch (e: Exception) {
-                    showToast(getString(R.string.error_verify_records, e.message))
-                }
+    private fun showExportConfirmation() {
+        val currentBlocks = viewModel.timeBlocks.value
+        if (currentBlocks.isNullOrEmpty()) {
+            showToast(getString(R.string.no_records_to_export))
+            return
+        }
+
+        // Calcular el total de horas
+        var totalMinutes = 0L
+        currentBlocks.forEach { block ->
+            totalMinutes += block.duration
+        }
+
+        val hours = totalMinutes / 60
+        val minutes = totalMinutes % 60
+        val totalTimeText = "${hours}h ${minutes}m"
+
+        val message = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            android.text.Html.fromHtml(
+                getString(R.string.export_week_confirmation, totalTimeText),
+                android.text.Html.FROM_HTML_MODE_LEGACY
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            android.text.Html.fromHtml(getString(R.string.export_week_confirmation, totalTimeText))
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.export_week_title)
+            .setMessage(message)
+            .setPositiveButton(R.string.export) { _, _ ->
+                exportCurrentWeek()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+            .show()
+    }
+
+    private fun exportCurrentWeek() {
+        viewModel.exportWeekToPdf { success, message ->
+            showToast(message)
+            if (success) {
+                // Recargar las semanas disponibles después de exportar
+                viewModel.loadAvailableWeeks()
             }
         }
     }
@@ -269,13 +247,20 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
         }
     }
 
-    // Implementación de los métodos de la interfaz TimeEditBottomSheet.Callback
+    // Implementación de TimeEditBottomSheet.Callback
     override fun onTimeUpdated() {
-        loadCurrentWeek()
+        // Recargar la semana actual
+        viewModel.uiState.value.selectedWeek?.let {
+            viewModel.loadWeekRecords(it.startDate)
+        }
     }
 
     override fun onRecordDeleted(recordId: Long) {
-        loadCurrentWeek()
-        setupTabs(view ?: return)
+        viewModel.deleteRecord(recordId)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

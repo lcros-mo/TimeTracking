@@ -2,7 +2,6 @@ package com.timetracking.app.ui.home
 
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
-import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
@@ -94,9 +93,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Añadir listener para el botón de idioma
-        binding.languageButton.setOnClickListener {
-            showLanguageDialog()
-        }
+        //binding.languageButton.setOnClickListener {
+       //     showLanguageDialog()
+        //}
     }
 
     override fun onBackPressed() {

@@ -48,8 +48,8 @@ android {
         applicationId = "com.timetracking.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 19
-        versionName = "1.6.0"
+        versionCode = 21
+        versionName = "1.6.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -135,4 +135,7 @@ dependencies {
 
     // App Updates
     implementation(libs.app.update.ktx)
+
+    // Fragment KTX - esto proporciona viewModels()
+    implementation(libs.androidx.fragment.ktx)
 }

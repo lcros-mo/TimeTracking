@@ -5,7 +5,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.timetracking.app.core.data.model.RecordType
-import com.timetracking.app.core.data.model.TimeRecord
 import com.timetracking.app.core.data.model.TimeRecordBlock
 import com.timetracking.app.core.data.repository.TimeRecordRepository
 import com.timetracking.app.core.utils.DateTimeUtils

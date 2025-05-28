@@ -24,9 +24,9 @@
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/languageButton" />
+            app:layout_constraintEnd_toStartOf="@id/logoutButton" />
 
-        <com.google.android.material.button.MaterialButton
+        <!-- <com.google.android.material.button.MaterialButton
             android:id="@+id/languageButton"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
@@ -34,7 +34,7 @@
             app:icon="@drawable/ic_language"
             android:contentDescription="@string/change_language"
             app:layout_constraintEnd_toStartOf="@id/logoutButton"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent" /> -->
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/logoutButton"

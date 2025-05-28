@@ -12,8 +12,6 @@ import com.itextpdf.layout.Document
 import com.itextpdf.layout.element.Paragraph
 import com.itextpdf.layout.element.Table
 import com.itextpdf.layout.properties.TextAlignment
-import com.timetracking.app.core.data.model.RecordType
-import com.timetracking.app.core.data.model.TimeRecord
 import com.timetracking.app.core.data.model.TimeRecordBlock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -44,7 +42,6 @@ object ServerConfig {
     const val SERVER_URL_UPLOAD = "$SERVER_URL_BASE/upload"
     const val SERVER_URL_CHECK_FILE = "$SERVER_URL_BASE/files/check"
     const val SERVER_URL_DOWNLOAD = "$SERVER_URL_BASE/files/download"
-    const val PDF_DIRECTORY = "D:\\Administracio\\GEST ADM PERSONAL\\2024 GEST PERS\\24 REG HORES ADM\\A_PRUEBA_REGISTROS_APP"
 }
 
 class PDFManager(private val context: Context) {
