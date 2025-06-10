@@ -64,35 +64,32 @@ class HistoryViewModel(
     /**
      * Carga las semanas que tienen registros NO EXPORTADOS
      */
+    // En HistoryViewModel.kt - método loadAvailableWeeks() líneas 46-76
     fun loadAvailableWeeks() {
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
 
-                // Calcular el inicio de la semana actual
                 val today = Calendar.getInstance()
                 val currentWeekStart = DateTimeUtils.getStartOfWeek(today.time)
-
-                // Calendar para ir retrocediendo semanas
                 val calendar = Calendar.getInstance()
-
-                // Lista para almacenar las semanas con registros
                 val weeksWithRecords = mutableListOf<WeekData>()
 
-                // Retrocedemos hasta 4 semanas revisando si hay registros NO EXPORTADOS
                 for (i in 0 until 4) {
                     val weekStart = DateTimeUtils.getStartOfWeek(calendar.time)
 
-                    // Verificar que la semana no sea futura y tenga registros NO EXPORTADOS
                     if (weekStart.time <= currentWeekStart.time) {
                         val records = repository.getRecordsForWeek(weekStart)
-                        if (records.isNotEmpty() && records.any { !it.exported }) {
+
+                        // 👈 MEJORAR LÓGICA: Solo semanas con registros NO exportados
+                        val hasNonExportedRecords = records.any { !it.exported }
+
+                        if (hasNonExportedRecords) {
                             val endOfWeek = Calendar.getInstance().apply {
                                 time = weekStart
                                 add(Calendar.DAY_OF_WEEK, 6)
                             }.time
 
-                            // Formato para mostrar fechas
                             val dateFormat = SimpleDateFormat("dd", Locale.getDefault())
                             val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
 
@@ -107,7 +104,6 @@ class HistoryViewModel(
 
                 _availableWeeks.value = weeksWithRecords
 
-                // Si hay semanas disponibles, seleccionar la más reciente por defecto
                 if (weeksWithRecords.isNotEmpty()) {
                     val mostRecentWeek = weeksWithRecords.last()
                     _uiState.value = _uiState.value.copy(
@@ -116,6 +112,8 @@ class HistoryViewModel(
                     )
                     loadWeekRecords(mostRecentWeek.startDate)
                 } else {
+                    // 👈 CUANDO NO HAY SEMANAS, LIMPIAR VISTA
+                    _timeBlocks.value = emptyList()
                     _uiState.value = _uiState.value.copy(isLoading = false)
                 }
             } catch (e: Exception) {
@@ -135,8 +133,12 @@ class HistoryViewModel(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
 
-                val records = repository.getRecordsForWeek(weekStart)
-                val blocks = TimeRecordBlock.createBlocks(records)
+                val allRecords = repository.getRecordsForWeek(weekStart)
+
+                // 👈 FILTRAR SOLO REGISTROS NO EXPORTADOS
+                val nonExportedRecords = allRecords.filter { !it.exported }
+
+                val blocks = TimeRecordBlock.createBlocks(nonExportedRecords)
 
                 _timeBlocks.value = blocks
                 _uiState.value = _uiState.value.copy(
@@ -146,34 +148,6 @@ class HistoryViewModel(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = "Error al cargar registros: ${e.message}",
-                    isLoading = false
-                )
-            }
-        }
-    }
-
-    /**
-     * Actualiza la hora de un registro
-     */
-    fun updateRecordTime(recordId: Long, hour: Int, minute: Int) {
-        viewModelScope.launch {
-            try {
-                _uiState.value = _uiState.value.copy(isLoading = true)
-
-                repository.updateRecordTime(recordId, hour, minute)
-
-                // Recargar datos
-                _uiState.value.selectedWeek?.let {
-                    loadWeekRecords(it.startDate)
-                }
-
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    message = "Registro actualizado correctamente"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Error al actualizar registro: ${e.message}",
                     isLoading = false
                 )
             }
@@ -209,34 +183,6 @@ class HistoryViewModel(
     }
 
     /**
-     * Añade un nuevo registro
-     */
-    fun addRecord(date: Date, type: RecordType, note: String? = null) {
-        viewModelScope.launch {
-            try {
-                _uiState.value = _uiState.value.copy(isLoading = true)
-
-                repository.insertRecord(date, type, note)
-
-                // Recargar datos
-                _uiState.value.selectedWeek?.let {
-                    loadWeekRecords(it.startDate)
-                }
-
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    message = "Registro añadido correctamente"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Error al añadir registro: ${e.message}",
-                    isLoading = false
-                )
-            }
-        }
-    }
-
-    /**
      * Exporta los registros a PDF
      */
     fun exportWeekToPdf(onComplete: (success: Boolean, message: String) -> Unit) {
@@ -255,16 +201,17 @@ class HistoryViewModel(
                     return@launch
                 }
 
-                // Utilizar PDFManager si está disponible, de lo contrario fallar
                 val pdfManager = this@HistoryViewModel.pdfManager
                     ?: throw IllegalStateException("PDFManager no disponible")
 
                 pdfManager.createAndUploadPDF(currentBlocks)
 
-                // Marcar registros como exportados
                 _uiState.value.selectedWeek?.let { week ->
                     repository.markWeekAsExported(week.startDate)
                 }
+
+                // 👈 DESPUÉS DE EXPORTAR, RECARGAR SEMANAS DISPONIBLES
+                loadAvailableWeeks()
 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
