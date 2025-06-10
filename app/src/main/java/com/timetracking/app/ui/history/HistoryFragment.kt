@@ -170,6 +170,13 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
     }
 
     private fun updateWeeklySummary(blocks: List<com.timetracking.app.core.data.model.TimeRecordBlock>) {
+        if (blocks.isEmpty()) {
+            binding.weekSummaryCard.visibility = View.GONE
+            return
+        }
+
+        binding.weekSummaryCard.visibility = View.VISIBLE
+
         var totalMinutes = 0L
         blocks.forEach { block ->
             totalMinutes += block.duration

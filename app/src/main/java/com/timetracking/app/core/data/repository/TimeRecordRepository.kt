@@ -62,48 +62,6 @@ class TimeRecordRepository(private val timeRecordDao: TimeRecordDao) {
         return true
     }
 
-    suspend fun getRecordsByDateRange(startDate: Date, endDate: Date): List<TimeRecord> {
-        return timeRecordDao.getDayRecords(startDate, endDate)
-    }
-
-    /**
-     * Obtiene las semanas que tienen registros no exportados
-     */
-    suspend fun getUnexportedWeeks(): List<Date> {
-        // Obtener todas las semanas disponibles (hasta 4 semanas atrás)
-        val today = Calendar.getInstance().time
-        val calendar = Calendar.getInstance()
-        val weeks = mutableListOf<Date>()
-
-        for (i in 0 until 4) {
-            val weekStart = DateTimeUtils.getStartOfWeek(calendar.time)
-            if (weekStart.time <= today.time) {
-                val records = getRecordsForWeek(weekStart)
-
-                // Verificar si hay registros no exportados
-                val hasUnexportedRecords = records.any { !it.exported }
-
-                if (hasUnexportedRecords) {
-                    weeks.add(weekStart)
-                }
-            }
-            calendar.add(Calendar.WEEK_OF_YEAR, -1)
-        }
-
-        return weeks
-    }
-
-    suspend fun canExportWeek(weekStart: Date): Boolean {
-        val startDate = DateTimeUtils.getStartOfWeek(weekStart)
-        val endDate = DateTimeUtils.getEndOfWeek(weekStart)
-
-        // Obtener todos los registros de la semana
-        val records = timeRecordDao.getDayRecords(startDate, endDate)
-
-        // Verificar si hay al menos un registro y ninguno está marcado como exportado
-        return records.isNotEmpty() && records.any { !it.exported }
-    }
-
     suspend fun updateRecordNote(recordId: Long, note: String): Boolean {
         val record = timeRecordDao.getRecordById(recordId) ?: return false
 

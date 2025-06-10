@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.timetracking.app.core.data.model.RecordType
+import com.timetracking.app.core.data.model.TimeRecord
 import com.timetracking.app.core.data.model.TimeRecordBlock
 import com.timetracking.app.core.data.repository.TimeRecordRepository
 import com.timetracking.app.core.utils.DateTimeUtils
@@ -61,7 +62,7 @@ class HistoryViewModel(
     }
 
     /**
-     * Carga las semanas que tienen registros
+     * Carga las semanas que tienen registros NO EXPORTADOS
      */
     fun loadAvailableWeeks() {
         viewModelScope.launch {
@@ -78,14 +79,14 @@ class HistoryViewModel(
                 // Lista para almacenar las semanas con registros
                 val weeksWithRecords = mutableListOf<WeekData>()
 
-                // Retrocedemos hasta 4 semanas revisando si hay registros
+                // Retrocedemos hasta 4 semanas revisando si hay registros NO EXPORTADOS
                 for (i in 0 until 4) {
                     val weekStart = DateTimeUtils.getStartOfWeek(calendar.time)
 
-                    // Verificamos que la semana no sea futura y tenga registros
+                    // Verificar que la semana no sea futura y tenga registros NO EXPORTADOS
                     if (weekStart.time <= currentWeekStart.time) {
                         val records = repository.getRecordsForWeek(weekStart)
-                        if (records.isNotEmpty()) {
+                        if (records.isNotEmpty() && records.any { !it.exported }) {
                             val endOfWeek = Calendar.getInstance().apply {
                                 time = weekStart
                                 add(Calendar.DAY_OF_WEEK, 6)
@@ -259,6 +260,11 @@ class HistoryViewModel(
                     ?: throw IllegalStateException("PDFManager no disponible")
 
                 pdfManager.createAndUploadPDF(currentBlocks)
+
+                // Marcar registros como exportados
+                _uiState.value.selectedWeek?.let { week ->
+                    repository.markWeekAsExported(week.startDate)
+                }
 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
