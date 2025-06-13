@@ -17,6 +17,15 @@ import com.timetracking.app.core.di.ServiceLocator
 import com.timetracking.app.databinding.FragmentHistoryBinding
 import com.timetracking.app.ui.history.adapter.TimeRecordBlockAdapter
 import kotlinx.coroutines.launch
+import java.util.Locale
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import java.text.SimpleDateFormat
+import java.util.*
+import com.timetracking.app.core.utils.TrustAllCerts
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 
 class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
 
@@ -215,26 +224,95 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
         val hours = totalMinutes / 60
         val minutes = totalMinutes % 60
         val totalTimeText = "${hours}h ${minutes}m"
+        val totalHours = totalMinutes / 60.0
+
+        // Verificar si excede las 37.5 horas
+        val isOvertime = totalHours > 37.5
+
+        val messageText = if (isOvertime) {
+            val overtimeHours = totalHours - 37.5
+            val overtimeText = String.format(Locale.getDefault(), "%.1f", overtimeHours)
+
+            "⚠️ <b>ATENCIÓN:</b> Has trabajado <b>$totalTimeText</b> esta semana.<br><br>" +
+                    "Excedes las <b>37.5h reglamentarias</b> en <b>$overtimeText horas</b>.<br><br>" +
+                    "Se enviará una <b>notificación automática a administración</b>.<br><br>" +
+                    "¿Continuar con la exportación?"
+        } else {
+            getString(R.string.export_week_confirmation, totalTimeText)
+        }
 
         val message = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-            android.text.Html.fromHtml(
-                getString(R.string.export_week_confirmation, totalTimeText),
-                android.text.Html.FROM_HTML_MODE_LEGACY
-            )
+            android.text.Html.fromHtml(messageText, android.text.Html.FROM_HTML_MODE_LEGACY)
         } else {
             @Suppress("DEPRECATION")
-            android.text.Html.fromHtml(getString(R.string.export_week_confirmation, totalTimeText))
+            android.text.Html.fromHtml(messageText)
         }
 
         AlertDialog.Builder(requireContext())
-            .setTitle(R.string.export_week_title)
+            .setTitle(if (isOvertime) "⚠️ Horas Extras" else getString(R.string.export_week_title))
             .setMessage(message)
             .setPositiveButton(R.string.export) { _, _ ->
+                // Si hay horas extras, enviar notificación
+                if (isOvertime) {
+                    // Usar el PDFManager existente para enviar la notificación
+                    sendOvertimeAlert(userName = FirebaseAuth.getInstance().currentUser?.displayName ?: "Usuario",
+                        userEmail = FirebaseAuth.getInstance().currentUser?.email ?: "email@desconocido.com",
+                        totalHours = totalHours)
+                }
                 exportCurrentWeek()
             }
             .setNegativeButton(R.string.cancel, null)
             .create()
             .show()
+    }
+
+    private fun sendOvertimeAlert(userName: String, userEmail: String, totalHours: Double) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val weekStart = viewModel.uiState.value.selectedWeek?.startDate ?: Date()
+                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+                // Cliente igual que PDFManager
+                val client = okhttp3.OkHttpClient.Builder()
+                    .hostnameVerifier { _, _ -> true }
+                    .sslSocketFactory(
+                        TrustAllCerts.createSSLSocketFactory(),
+                        TrustAllCerts.trustManager
+                    )
+                    .build()
+
+                val json = """
+                {
+                    "userName": "$userName",
+                    "userEmail": "$userEmail",
+                    "totalHours": $totalHours,
+                    "weekStartDate": "${dateFormat.format(weekStart)}"
+                }
+            """.trimIndent()
+
+                val requestBody = json.toRequestBody("application/json".toMediaTypeOrNull())
+
+                val request = okhttp3.Request.Builder()
+                    .url("https://80.32.125.224:5000/upload/send-overtime")
+                    .post(requestBody)
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    launch(Dispatchers.Main) {
+                        if (response.isSuccessful) {
+                            showToast("✅ Notificación enviada a administración")
+                        } else {
+                            showToast("Response: ${response.code}")
+                        }
+                    }
+                }
+
+            } catch (e: Exception) {
+                launch(Dispatchers.Main) {
+                    showToast("Error: ${e.message}")
+                }
+            }
+        }
     }
 
     private fun exportCurrentWeek() {
