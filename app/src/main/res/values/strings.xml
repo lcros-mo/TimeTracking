@@ -108,4 +108,5 @@
     <string name="login_subtitle">Introdueix el teu correu institucional per accedir</string>
     <string name="email">Correu electrònic</string>
     <string name="login">Iniciar sessió</string>
+    <string name="error_calculating_balance">Error al calcular balance: %1$s</string>
 </resources>

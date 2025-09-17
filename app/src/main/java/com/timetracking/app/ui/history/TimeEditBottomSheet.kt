@@ -67,7 +67,8 @@ class TimeEditBottomSheet : BottomSheetDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         repository = TimeRecordRepository(
-            (requireActivity().application as TimeTrackingApp).database.timeRecordDao()
+            (requireActivity().application as TimeTrackingApp).database.timeRecordDao(),
+            (requireActivity().application as TimeTrackingApp).database.overtimeBalanceDao()
         )
 
         timeBlock?.let { block ->

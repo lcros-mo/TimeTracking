@@ -48,8 +48,8 @@ android {
         applicationId = "com.timetracking.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 22
-        versionName = "1.7"
+        versionCode = 24
+        versionName = "1.7.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

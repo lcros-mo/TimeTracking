@@ -18,12 +18,6 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
     }
-    versionCatalogs {
-        create("libs") {
-            // Si no existe ya, añade esta línea
-            library("google-services", "com.google.gms:google-services:4.4.0")
-        }
-    }
 }
 
 rootProject.name = "TimeTracking"

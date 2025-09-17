@@ -9,15 +9,17 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.timetracking.app.core.data.model.TimeRecord
+import com.timetracking.app.core.data.model.OvertimeBalance
 
 @Database(
-    entities = [TimeRecord::class],
-    version = 2,
+    entities = [TimeRecord::class, OvertimeBalance::class],
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun timeRecordDao(): TimeRecordDao
+    abstract fun overtimeBalanceDao(): OvertimeBalanceDao
 
     companion object {
         @Volatile
@@ -29,7 +31,19 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL(
                     "ALTER TABLE time_records ADD COLUMN exported INTEGER NOT NULL DEFAULT 0"
                 )
-                Log.i("DATABASE", "✅ MIGRACIÓN COMPLETADA - DATOS PRESERVADOS")
+                Log.i("DATABASE", "✅ MIGRACIÓN 1->2 COMPLETADA - DATOS PRESERVADOS")
+            }
+        }
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Crear tabla para balance de horas extras
+                database.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `overtime_balance` (`id` INTEGER NOT NULL, `totalMinutes` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+                // Insertar registro inicial con balance 0
+                database.execSQL("INSERT OR IGNORE INTO overtime_balance (id, totalMinutes) VALUES (1, 0)")
+                Log.i("DATABASE", "✅ MIGRACIÓN 2->3 COMPLETADA - Tabla overtime_balance creada")
             }
         }
 
@@ -40,7 +54,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "timetracking_database"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                 INSTANCE = instance
                 instance

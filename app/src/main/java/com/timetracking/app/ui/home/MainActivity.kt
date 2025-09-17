@@ -41,6 +41,7 @@ class MainActivity : AppCompatActivity() {
 
         setupObservers()
         setupButtons()
+        setupBackPressedDispatcher()
     }
 
     override fun onResume() {
@@ -93,18 +94,22 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Añadir listener para el botón de idioma
-        //binding.languageButton.setOnClickListener {
-       //     showLanguageDialog()
-        //}
+        binding.languageButton.setOnClickListener {
+            showLanguageDialog()
+        }
     }
 
-    override fun onBackPressed() {
-        if (supportFragmentManager.backStackEntryCount > 0) {
-            binding.mainContent.visibility = View.VISIBLE
-            super.onBackPressed()
-        } else {
-            super.onBackPressed()
-        }
+    private fun setupBackPressedDispatcher() {
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (supportFragmentManager.backStackEntryCount > 0) {
+                    binding.mainContent.visibility = View.VISIBLE
+                    supportFragmentManager.popBackStack()
+                } else {
+                    finish()
+                }
+            }
+        })
     }
 
     private fun updateButtonState(isCheckedIn: Boolean) {

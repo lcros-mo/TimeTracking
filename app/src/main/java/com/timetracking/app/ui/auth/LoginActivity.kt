@@ -32,6 +32,9 @@ class LoginActivity : AppCompatActivity() {
         resources.updateConfiguration(config, resources.displayMetrics)
 
         super.onCreate(savedInstanceState)
+
+        checkLanguageChange()
+
         setContentView(R.layout.activity_login)
 
         auth = FirebaseAuth.getInstance()
@@ -95,5 +98,16 @@ class LoginActivity : AppCompatActivity() {
                     Toast.makeText(this, getString(R.string.error_loading_records, "Fallo al autenticar con Firebase"), Toast.LENGTH_SHORT).show()
                 }
             }
+    }
+
+    private fun checkLanguageChange() {
+        val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
+        if (prefs.getBoolean("language_changed", false)) {
+            // Limpiar el flag
+            prefs.edit().putBoolean("language_changed", false).apply()
+
+            // Mostrar mensaje de confirmación
+            Toast.makeText(this, getString(R.string.language_changed), Toast.LENGTH_SHORT).show()
+        }
     }
 }

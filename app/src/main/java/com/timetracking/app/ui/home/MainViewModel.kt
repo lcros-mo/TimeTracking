@@ -10,6 +10,7 @@ import com.timetracking.app.core.data.model.RecordType
 import com.timetracking.app.core.data.model.TimeRecord
 import com.timetracking.app.core.data.repository.TimeRecordRepository
 import com.timetracking.app.core.utils.DateTimeUtils
+import com.timetracking.app.core.utils.TimeCalculationUtils
 import com.timetracking.app.core.utils.TimeRecordValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,11 +32,23 @@ data class MainUiState(
  * Estadísticas de tiempo para mostrar en la UI
  */
 data class TimeStats(
-    val hours: Long = 0,
-    val minutes: Long = 0,
     val totalMinutes: Long = 0
 ) {
+    val hours: Long get() = totalMinutes / 60
+    val minutes: Long get() = totalMinutes % 60
+
+    val isZero: Boolean get() = totalMinutes == 0L
+
     override fun toString(): String = "${hours}h ${minutes}m"
+
+    companion object {
+        val ZERO = TimeStats(0L)
+
+        fun fromMinutes(minutes: Long): TimeStats = TimeStats(minutes)
+    }
+
+    operator fun plus(other: TimeStats): TimeStats =
+        TimeStats(totalMinutes + other.totalMinutes)
 }
 
 /**
@@ -59,6 +72,10 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
     // Tiempo semanal
     private val _weeklyTime = MutableLiveData<TimeStats>()
     val weeklyTime: LiveData<TimeStats> = _weeklyTime
+
+    // Balance de horas extras
+    private val _overtimeBalance = MutableLiveData<TimeStats>()
+    val overtimeBalance: LiveData<TimeStats> = _overtimeBalance
 
     init {
         loadLastState()
@@ -116,6 +133,7 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
 
                 updateTodayTime()
                 updateWeeklyTime()
+                updateOvertimeBalance()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = TimeTrackingApp.appContext.getString(R.string.error_loading_last_state, e.message)
@@ -189,6 +207,7 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
 
                 updateTodayTime()
                 updateWeeklyTime()
+                updateOvertimeBalance()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = TimeTrackingApp.appContext.getString(R.string.error_processing_check, e.message)
@@ -203,36 +222,13 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
     private fun updateTodayTime() {
         viewModelScope.launch {
             try {
-                val todayRecords = repository.getDayRecords(DateTimeUtils.clearSeconds(Date()))
-                var totalMinutes = 0L
+                val todayRecords = repository.getDayRecords(Date())
+                val totalMinutes = TimeCalculationUtils.calculateWorkingMinutes(
+                    records = todayRecords,
+                    includeInProgressToday = true
+                )
 
-                // Ordenar los registros por fecha
-                val sortedRecords = todayRecords.sortedBy { it.date }
-
-                var i = 0
-                while (i < sortedRecords.size - 1) {
-                    val current = sortedRecords[i]
-                    val next = sortedRecords[i + 1]
-
-                    if (current.type == RecordType.CHECK_IN && next.type == RecordType.CHECK_OUT) {
-                        val diffInMillis = next.date.time - current.date.time
-                        totalMinutes += diffInMillis / (1000 * 60)
-                        i += 2
-                    } else {
-                        i++
-                    }
-                }
-
-                // Si el último registro es CHECK_IN, añadir tiempo hasta ahora
-                if (sortedRecords.lastOrNull()?.type == RecordType.CHECK_IN) {
-                    val diffInMillis = Date().time - sortedRecords.last().date.time
-                    totalMinutes += diffInMillis / (1000 * 60)
-                }
-
-                val hours = totalMinutes / 60
-                val minutes = totalMinutes % 60
-
-                _todayTime.value = TimeStats(hours, minutes, totalMinutes)
+                _todayTime.value = TimeStats.fromMinutes(totalMinutes)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = TimeTrackingApp.appContext.getString(R.string.error_calculating_daily_time, e.message)
@@ -248,38 +244,13 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
         viewModelScope.launch {
             try {
                 val weekStart = DateTimeUtils.getStartOfWeek(Date())
-                val records = repository.getRecordsForWeek(weekStart)
+                val weekRecords = repository.getRecordsForWeek(weekStart)
+                val totalMinutes = TimeCalculationUtils.calculateWorkingMinutes(
+                    records = weekRecords,
+                    includeInProgressToday = true
+                )
 
-                // Procesar registros para calcular tiempo semanal
-                var totalMinutes = 0L
-
-                // Ordenar por fecha y agrupar entradas y salidas
-                val sortedRecords = records.sortedBy { it.date }
-
-                var i = 0
-                while (i < sortedRecords.size - 1) {
-                    val current = sortedRecords[i]
-                    val next = sortedRecords[i + 1]
-
-                    if (current.type == RecordType.CHECK_IN && next.type == RecordType.CHECK_OUT) {
-                        val diffInMillis = next.date.time - current.date.time
-                        totalMinutes += diffInMillis / (1000 * 60)
-                        i += 2
-                    } else {
-                        i++
-                    }
-                }
-
-                // Si el último registro es CHECK_IN, añadir tiempo hasta ahora
-                if (sortedRecords.lastOrNull()?.type == RecordType.CHECK_IN) {
-                    val diffInMillis = Date().time - sortedRecords.last().date.time
-                    totalMinutes += diffInMillis / (1000 * 60)
-                }
-
-                val hours = totalMinutes / 60
-                val minutes = totalMinutes % 60
-
-                _weeklyTime.value = TimeStats(hours, minutes, totalMinutes)
+                _weeklyTime.value = TimeStats.fromMinutes(totalMinutes)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = TimeTrackingApp.appContext.getString(R.string.error_calculating_weekly_time, e.message)
@@ -303,5 +274,26 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
      */
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    /**
+     * Actualiza el balance acumulado de horas extras
+     */
+    /**
+     * Actualiza el balance de horas extras - MÉTODO LIMPIO
+     */
+    private fun updateOvertimeBalance() {
+        viewModelScope.launch {
+            try {
+                val balanceMinutes = repository.getOvertimeBalance()
+
+                _overtimeBalance.value = TimeStats.fromMinutes(kotlin.math.abs(balanceMinutes))
+
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = TimeTrackingApp.appContext.getString(R.string.error_calculating_balance, e.message)
+                )
+            }
+        }
     }
 }

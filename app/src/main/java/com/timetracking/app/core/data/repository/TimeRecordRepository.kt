@@ -1,17 +1,20 @@
 package com.timetracking.app.core.data.repository
 
+import com.timetracking.app.core.data.db.OvertimeBalanceDao
 import com.timetracking.app.core.data.db.TimeRecordDao
+import com.timetracking.app.core.data.model.OvertimeBalance
 import com.timetracking.app.core.data.model.TimeRecord
 import com.timetracking.app.core.data.model.RecordType
 import com.timetracking.app.core.utils.DateTimeUtils
 import java.util.*
 
-class TimeRecordRepository(private val timeRecordDao: TimeRecordDao) {
+class TimeRecordRepository(private val timeRecordDao: TimeRecordDao, private val overtimeBalanceDao: OvertimeBalanceDao) {
     suspend fun insertRecord(date: Date, type: RecordType, note: String? = null): Long {
         val record = TimeRecord(
             date = DateTimeUtils.clearSeconds(date),
             type = type,
-            note = note
+            note = note,
+            exported = false
         )
         return timeRecordDao.insert(record)
     }
@@ -67,5 +70,20 @@ class TimeRecordRepository(private val timeRecordDao: TimeRecordDao) {
 
         timeRecordDao.update(record.copy(note = note))
         return true
+    }
+
+    suspend fun getOvertimeBalance(): Long {
+        val balance = overtimeBalanceDao.getBalance()
+        return balance?.totalMinutes ?: 0L
+    }
+
+    suspend fun addToOvertimeBalance(weeklyMinutes: Long) {
+        // Calcular diferencia contra 37.5h (2250 minutos)
+        val overtimeMinutes = weeklyMinutes - 2250L // 37.5h * 60min
+
+        val currentBalance = getOvertimeBalance()
+        val newBalance = OvertimeBalance(id = 1, totalMinutes = currentBalance + overtimeMinutes)
+
+        overtimeBalanceDao.insertOrUpdateBalance(newBalance)
     }
 }

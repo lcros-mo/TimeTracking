@@ -226,14 +226,14 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
         val totalTimeText = "${hours}h ${minutes}m"
         val totalHours = totalMinutes / 60.0
 
-        // Verificar si excede las 37.5 horas
-        val isOvertime = totalHours > 37.5
+        // Verificar si excede las 40 horas
+        val isOvertime = totalHours > 40.0
 
         val messageText = if (isOvertime) {
             val overtimeHours = totalHours - 37.5
             val overtimeText = String.format(Locale.getDefault(), "%.1f", overtimeHours)
 
-            "⚠️ <b>ATENCIÓN:</b> Has trabajado <b>$totalTimeText</b> esta semana.<br><br>" +
+            "⚠️ <b>ATENCIÓ:</b> Has trabajado <b>$totalTimeText</b> esta semana.<br><br>" +
                     "Excedes las <b>37.5h reglamentarias</b> en <b>$overtimeText horas</b>.<br><br>" +
                     "Se enviará una <b>notificación automática a administración</b>.<br><br>" +
                     "¿Continuar con la exportación?"

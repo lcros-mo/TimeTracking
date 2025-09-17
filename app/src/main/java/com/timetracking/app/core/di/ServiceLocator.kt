@@ -74,7 +74,8 @@ object ServiceLocator {
     private fun getRepository(context: Context): TimeRecordRepository {
         return timeRecordRepository ?: synchronized(this) {
             timeRecordRepository ?: TimeRecordRepository(
-                getDatabase(context).timeRecordDao()
+                getDatabase(context).timeRecordDao(),
+                getDatabase(context).overtimeBalanceDao()
             ).also { timeRecordRepository = it }
         }
     }

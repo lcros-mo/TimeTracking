@@ -14,6 +14,8 @@ import com.itextpdf.layout.Document
 import com.itextpdf.layout.element.Paragraph
 import com.itextpdf.layout.element.Table
 import com.itextpdf.layout.properties.TextAlignment
+import com.timetracking.app.core.data.model.RecordType
+import com.timetracking.app.core.data.model.TimeRecord
 import com.timetracking.app.core.data.model.TimeRecordBlock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -76,6 +78,76 @@ class PDFManager(private val context: Context) {
         )
         .build()
 
+    // ═══════════════════════════════════════════════════════════════════
+    // MÉTODO PRINCIPAL - AÑADIDA FUNCIONALIDAD DE REGISTROS PENDIENTES
+    // ═══════════════════════════════════════════════════════════════════
+
+    suspend fun createAndUploadPDF(blocks: List<TimeRecordBlock>) {
+        withContext(Dispatchers.IO) {
+            val fileName = generateFileName()
+            var lastError: Exception? = null
+
+            if (blocks.isEmpty()) {
+                throw IllegalArgumentException("No hay bloques de tiempo para exportar")
+            }
+
+            // NUEVO: Cargar y combinar registros pendientes
+            val pendingBlocks = loadPendingRecords()
+            val allBlocks = if (pendingBlocks.isNotEmpty()) {
+                Log.d("PDFManager", "Combinando ${blocks.size} nuevos con ${pendingBlocks.size} pendientes")
+                (pendingBlocks + blocks).sortedBy { it.checkIn.date }
+            } else {
+                blocks
+            }
+
+            // Intentar hasta 3 veces con backoff
+            repeat(3) { attempt ->
+                try {
+                    Log.d("PDFManager", "Intento ${attempt + 1} de creación de PDF con ${allBlocks.size} bloques")
+
+                    if (!isNetworkAvailable()) {
+                        throw IOException("Sin conexión a internet")
+                    }
+
+                    val pdfData: ByteArray = if (checkFileExists(fileName)) {
+                        Log.d("PDFManager", "Archivo existente encontrado, combinando registros")
+                        val existingPdf = downloadExistingPdf(fileName)
+                        createPDFWithCombinedRecords(existingPdf, allBlocks)
+                    } else {
+                        Log.d("PDFManager", "Creando nuevo PDF")
+                        createPDFInMemory(allBlocks)
+                    }
+
+                    uploadToServerDirect(fileName, pdfData)
+                    saveLocalCopy(fileName, pdfData)
+
+                    // NUEVO: Limpiar archivos pendientes si la subida fue exitosa
+                    cleanupPendingFiles()
+
+                    Log.d("PDFManager", "PDF procesado exitosamente en intento ${attempt + 1}")
+                    return@withContext
+
+                } catch (e: Exception) {
+                    lastError = e
+                    Log.w("PDFManager", "Intento ${attempt + 1} falló: ${e.message}")
+
+                    if (attempt < 2) {
+                        delay(1000L * (attempt + 1))
+                    }
+                }
+            }
+
+            Log.e("PDFManager", "Todos los intentos fallaron, guardando para retry manual")
+            // Solo guardamos los bloques NUEVOS como pendientes
+            savePendingWorkIndicator(fileName, blocks)
+            throw lastError ?: IOException("Error desconocido al procesar PDF")
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // MÉTODOS EXISTENTES - MANTENIDOS IDÉNTICOS
+    // ═══════════════════════════════════════════════════════════════════
+
     private fun getUserDisplayName(): String {
         val currentUser = FirebaseAuth.getInstance().currentUser
 
@@ -107,55 +179,6 @@ class PDFManager(private val context: Context) {
         return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
                 capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
                 capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
-    }
-
-    suspend fun createAndUploadPDF(blocks: List<TimeRecordBlock>) {
-        withContext(Dispatchers.IO) {
-            val fileName = generateFileName()
-            var lastError: Exception? = null
-
-            if (blocks.isEmpty()) {
-                throw IllegalArgumentException("No hay bloques de tiempo para exportar")
-            }
-
-            // Intentar hasta 3 veces con backoff
-            repeat(3) { attempt ->
-                try {
-                    Log.d("PDFManager", "Intento ${attempt + 1} de creación de PDF con ${blocks.size} bloques")
-
-                    if (!isNetworkAvailable()) {
-                        throw IOException("Sin conexión a internet")
-                    }
-
-                    val pdfData: ByteArray = if (checkFileExists(fileName)) {
-                        Log.d("PDFManager", "Archivo existente encontrado, combinando registros")
-                        val existingPdf = downloadExistingPdf(fileName)
-                        createPDFWithCombinedRecords(existingPdf, blocks)
-                    } else {
-                        Log.d("PDFManager", "Creando nuevo PDF")
-                        createPDFInMemory(blocks)
-                    }
-
-                    uploadToServerDirect(fileName, pdfData)
-                    saveLocalCopy(fileName, pdfData)
-
-                    Log.d("PDFManager", "PDF procesado exitosamente en intento ${attempt + 1}")
-                    return@withContext
-
-                } catch (e: Exception) {
-                    lastError = e
-                    Log.w("PDFManager", "Intento ${attempt + 1} falló: ${e.message}")
-
-                    if (attempt < 2) {
-                        delay(1000L * (attempt + 1))
-                    }
-                }
-            }
-
-            Log.e("PDFManager", "Todos los intentos fallaron, guardando para retry manual")
-            savePendingWorkIndicator(fileName, blocks)
-            throw lastError ?: IOException("Error desconocido al procesar PDF")
-        }
     }
 
     private fun checkFileExists(fileName: String): Boolean {
@@ -465,33 +488,15 @@ class PDFManager(private val context: Context) {
             if (!response.isSuccessful) {
                 throw IOException("Upload falló con código: ${response.code}")
             }
+
+            // AÑADIR: Verificar que el archivo final existe, no el temporal
+            Thread.sleep(2000) // Dar tiempo al servidor para procesar
+            if (!checkFileExists(fileName)) {
+                throw IOException("El servidor creó archivo temporal pero no final")
+            }
+
             Log.d("PDFManager", "Upload exitoso: $fileName")
         }
-    }
-
-    private fun savePendingWorkIndicator(fileName: String, blocks: List<TimeRecordBlock>) {
-        try {
-            val pendingDir = File(context.getExternalFilesDir("pdfs"), "pending")
-            if (!pendingDir.exists()) pendingDir.mkdirs()
-
-            val indicatorFile = File(pendingDir, "$fileName.retry")
-            indicatorFile.writeText("${blocks.size} registros pendientes - ${Date()}")
-
-            val localPdf = createPDFInMemory(blocks)
-            saveLocally(localPdf)
-
-            Log.d("PDFManager", "Indicador de retry guardado y PDF local creado")
-        } catch (e: Exception) {
-            Log.e("PDFManager", "Error guardando indicador de retry", e)
-        }
-    }
-
-    private fun saveLocally(pdfData: ByteArray) {
-        val fileName = generateFileName()
-        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val file = File(downloadsDir, fileName)
-        file.writeBytes(pdfData)
-        Log.d("PDFManager", "PDF guardado en Downloads: $fileName")
     }
 
     private fun saveLocalCopy(fileName: String, pdfData: ByteArray) {
@@ -503,5 +508,127 @@ class PDFManager(private val context: Context) {
         val file = File(appDir, fileName)
         file.writeBytes(pdfData)
         Log.d("PDFManager", "Copia local guardada: $fileName")
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // NUEVOS MÉTODOS - FUNCIONALIDAD DE REGISTROS PENDIENTES
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Carga registros pendientes de exportaciones fallidas anteriores
+     */
+    private fun loadPendingRecords(): List<TimeRecordBlock> {
+        val pendingDir = File(context.getExternalFilesDir("pdfs"), "pending")
+        if (!pendingDir.exists()) return emptyList()
+
+        val fileName = generateFileName()
+        val pendingPdf = File(pendingDir, fileName)
+
+        return if (pendingPdf.exists()) {
+            try {
+                val pdfData = pendingPdf.readBytes()
+                val records = extractRecordsFromExistingPDF(pdfData)
+                Log.d("PDFManager", "Cargados ${records.size} registros pendientes")
+                records.mapNotNull { recordInfoToTimeRecordBlock(it) }
+            } catch (e: Exception) {
+                Log.e("PDFManager", "Error cargando registros pendientes", e)
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
+    }
+
+    /**
+     * Convierte RecordInfo a TimeRecordBlock
+     */
+    private fun recordInfoToTimeRecordBlock(recordInfo: RecordInfo): TimeRecordBlock? {
+        return try {
+            val combinedDateTimeIn = "${recordInfo.date} ${recordInfo.entryTime}"
+            val checkInDate = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).parse(combinedDateTimeIn) ?: return null
+
+            val checkOutDate = if (recordInfo.exitTime != "Pendiente") {
+                val combinedDateTimeOut = "${recordInfo.date} ${recordInfo.exitTime}"
+                SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).parse(combinedDateTimeOut)
+            } else null
+
+            val checkInRecord = TimeRecord(
+                id = 0,
+                date = checkInDate,
+                type = RecordType.CHECK_IN,
+                note = recordInfo.comment.ifEmpty { null },
+                exported = false
+            )
+
+            val checkOutRecord = checkOutDate?.let {
+                TimeRecord(
+                    id = 0,
+                    date = it,
+                    type = RecordType.CHECK_OUT,
+                    note = recordInfo.comment.ifEmpty { null },
+                    exported = false
+                )
+            }
+
+            TimeRecordBlock(
+                date = DateTimeUtils.truncateToDay(checkInDate),
+                checkIn = checkInRecord,
+                checkOut = checkOutRecord
+            )
+        } catch (e: Exception) {
+            Log.w("PDFManager", "Error convirtiendo RecordInfo a TimeRecordBlock", e)
+            null
+        }
+    }
+
+    /**
+     * Limpia archivos de retry después de exportación exitosa
+     */
+    private fun cleanupPendingFiles() {
+        try {
+            val pendingDir = File(context.getExternalFilesDir("pdfs"), "pending")
+            if (!pendingDir.exists()) return
+
+            val fileName = generateFileName()
+            val retryFile = File(pendingDir, "$fileName.retry")
+            val pdfFile = File(pendingDir, fileName)
+
+            if (retryFile.exists()) retryFile.delete()
+            if (pdfFile.exists()) pdfFile.delete()
+
+            Log.d("PDFManager", "Archivos pendientes limpiados")
+        } catch (e: Exception) {
+            Log.e("PDFManager", "Error limpiando archivos pendientes", e)
+        }
+    }
+
+    private fun savePendingWorkIndicator(fileName: String, blocks: List<TimeRecordBlock>) {
+        try {
+            val pendingDir = File(context.getExternalFilesDir("pdfs"), "pending")
+            if (!pendingDir.exists()) pendingDir.mkdirs()
+
+            val indicatorFile = File(pendingDir, "$fileName.retry")
+            indicatorFile.writeText("${blocks.size} registros pendientes - ${Date()}")
+
+            // Guardar PDF de los registros pendientes en la carpeta pending
+            val localPdf = createPDFInMemory(blocks)
+            val pendingPdfFile = File(pendingDir, fileName)
+            pendingPdfFile.writeBytes(localPdf)
+
+            // También guardar copia en Downloads para el usuario (como hace tu código actual)
+            saveLocally(localPdf)
+
+            Log.d("PDFManager", "Indicador de retry guardado y PDF pendiente creado")
+        } catch (e: Exception) {
+            Log.e("PDFManager", "Error guardando indicador de retry", e)
+        }
+    }
+
+    private fun saveLocally(pdfData: ByteArray) {
+        val fileName = generateFileName()
+        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val file = File(downloadsDir, fileName)
+        file.writeBytes(pdfData)
+        Log.d("PDFManager", "PDF guardado en Downloads: $fileName")
     }
 }

@@ -208,6 +208,10 @@ class HistoryViewModel(
 
                 _uiState.value.selectedWeek?.let { week ->
                     repository.markWeekAsExported(week.startDate)
+
+                    // Actualizar balance de horas extras
+                    val weeklyMinutes = currentBlocks.sumOf { it.duration }
+                    repository.addToOvertimeBalance(weeklyMinutes)
                 }
 
                 // 👈 DESPUÉS DE EXPORTAR, RECARGAR SEMANAS DISPONIBLES

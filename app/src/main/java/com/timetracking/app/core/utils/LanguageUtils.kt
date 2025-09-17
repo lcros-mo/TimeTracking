@@ -57,22 +57,22 @@ class LanguageUtils {
         }
 
         fun restartApp(activity: Activity) {
-            // Obtener el intent de inicio de la aplicación
-            val packageManager = activity.packageManager
-            val intent = packageManager.getLaunchIntentForPackage(activity.packageName)
+            // Método más confiable para reiniciar la app
+            val intent = Intent(activity, com.timetracking.app.ui.auth.LoginActivity::class.java)
+            intent.addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP
+            )
 
-            // Asegurarse de que se inicia como una nueva tarea
-            intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            // Guardar que necesitamos aplicar el idioma
+            activity.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean("language_changed", true)
+                .apply()
 
-            // Finalizar la actividad actual
-            activity.finish()
-
-            // Iniciar la actividad de inicio
             activity.startActivity(intent)
-
-            // Terminar el proceso para asegurar un reinicio limpio
-            Runtime.getRuntime().exit(0)
+            activity.finishAffinity() // Mejor que Runtime.exit(0)
         }
     }
 }

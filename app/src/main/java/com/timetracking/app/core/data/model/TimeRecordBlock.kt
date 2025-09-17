@@ -12,68 +12,87 @@ data class TimeRecordBlock(
     val checkOut: TimeRecord?,
     val duration: Long = calculateDuration(checkIn, checkOut)
 ) : Parcelable {
+
     companion object {
         private fun calculateDuration(checkIn: TimeRecord, checkOut: TimeRecord?): Long {
             return if (checkOut != null) {
-                (checkOut.date.time - checkIn.date.time) / (1000 * 60)
+                val duration = (checkOut.date.time - checkIn.date.time) / (1000 * 60)
+                maxOf(0L, duration) // Evitar duraciones negativas
             } else {
                 0
             }
         }
 
         fun createBlocks(records: List<TimeRecord>): List<TimeRecordBlock> {
-            val sortedRecords = records.sortedBy { it.date }
+            // Agrupar por día para evitar confusiones entre días
+            val recordsByDay = records
+                .sortedBy { it.date }
+                .groupBy { DateTimeUtils.truncateToDay(it.date) }
+
             val blocks = mutableListOf<TimeRecordBlock>()
 
-            // Mapa para almacenar entradas sin salida correspondiente
-            val pendingCheckIns = mutableMapOf<Long, TimeRecord>()
+            recordsByDay.forEach { (day, dayRecords) ->
+                blocks.addAll(createBlocksForDay(day, dayRecords))
+            }
 
-            // Primera pasada: emparejar entradas y salidas por pares lógicos
+            return blocks.sortedByDescending { it.date }
+        }
+
+        /**
+         * Crea bloques para un día específico - ALGORITMO SIMPLE
+         */
+        private fun createBlocksForDay(day: Date, dayRecords: List<TimeRecord>): List<TimeRecordBlock> {
+            val sortedRecords = dayRecords.sortedBy { it.date }
+            val blocks = mutableListOf<TimeRecordBlock>()
             var i = 0
+
             while (i < sortedRecords.size) {
                 val current = sortedRecords[i]
 
-                if (current.type == RecordType.CHECK_IN) {
-                    // Buscar la siguiente salida
-                    var matchingCheckOut: TimeRecord? = null
-                    var j = i + 1
+                when (current.type) {
+                    RecordType.CHECK_IN -> {
+                        // Buscar salida correspondiente
+                        val checkOutIndex = findNextCheckOut(sortedRecords, i + 1)
 
-                    while (j < sortedRecords.size) {
-                        if (sortedRecords[j].type == RecordType.CHECK_OUT) {
-                            matchingCheckOut = sortedRecords[j]
-                            break
-                        }
-                        j++
-                    }
+                        val checkOut = if (checkOutIndex != -1) {
+                            sortedRecords[checkOutIndex]
+                        } else null
 
-                    if (matchingCheckOut != null) {
                         blocks.add(TimeRecordBlock(
-                            date = DateTimeUtils.truncateToDay(current.date),
+                            date = day,
                             checkIn = current,
-                            checkOut = matchingCheckOut
+                            checkOut = checkOut
                         ))
-                        i = j + 1 // Avanzar a después del checkout encontrado
-                    } else {
-                        // No hay checkout - registro pendiente
+
+                        // Avanzar a después de la salida (si existe)
+                        i = if (checkOutIndex != -1) checkOutIndex + 1 else i + 1
+                    }
+                    RecordType.CHECK_OUT -> {
+                        // Salida huérfana - crear bloque con entrada ficticia
+                        // (Para mantener compatibilidad con UI existente)
                         blocks.add(TimeRecordBlock(
-                            date = DateTimeUtils.truncateToDay(current.date),
-                            checkIn = current,
+                            date = day,
+                            checkIn = current, // UI existente espera esto
                             checkOut = null
                         ))
                         i++
                     }
-                } else {
-                    // Si encontramos una salida sin entrada, la añadimos como entrada especial
-                    blocks.add(TimeRecordBlock(
-                        date = DateTimeUtils.truncateToDay(current.date),
-                        checkIn = current, // Usamos la salida como entrada para que sea visible
-                        checkOut = null
-                    ))
-                    i++
                 }
             }
 
-            return blocks.sortedByDescending { it.date }
+            return blocks
+        }
+
+        /**
+         * Encuentra el índice de la siguiente salida
+         */
+        private fun findNextCheckOut(records: List<TimeRecord>, startIndex: Int): Int {
+            for (i in startIndex until records.size) {
+                if (records[i].type == RecordType.CHECK_OUT) {
+                    return i
+                }
+            }
+            return -1
         }
     }
 }
