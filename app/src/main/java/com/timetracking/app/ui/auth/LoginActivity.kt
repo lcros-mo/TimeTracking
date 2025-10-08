@@ -1,11 +1,14 @@
 package com.timetracking.app.ui.auth
 
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -21,16 +24,16 @@ class LoginActivity : AppCompatActivity() {
 
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var auth: FirebaseAuth
+    private lateinit var signInLauncher: ActivityResultLauncher<Intent>
 
-    private val RC_SIGN_IN = 9001
+    override fun attachBaseContext(newBase: Context) {
+        val languageCode = LanguageUtils.getSelectedLanguage(newBase)
+        val config = Configuration(newBase.resources.configuration)
+        LanguageUtils.setLocale(config, languageCode)
+        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Aplicar idioma antes de setContentView
-        val languageCode = LanguageUtils.getSelectedLanguage(this)
-        val config = Configuration(resources.configuration)
-        LanguageUtils.setLocale(config, languageCode)
-        resources.updateConfiguration(config, resources.displayMetrics)
-
         super.onCreate(savedInstanceState)
 
         checkLanguageChange()
@@ -38,6 +41,24 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_login)
 
         auth = FirebaseAuth.getInstance()
+
+        // Registrar el ActivityResultLauncher antes de cualquier uso
+        signInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                try {
+                    val account = task.getResult(ApiException::class.java)
+                    if (account != null) {
+                        firebaseAuthWithGoogle(account.idToken!!)
+                    } else {
+                        Toast.makeText(this, getString(R.string.error_loading_records, "No se pudo obtener la cuenta de Google"), Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: ApiException) {
+                    Log.e("LoginActivity", "Google sign in failed", e)
+                    Toast.makeText(this, getString(R.string.error_loading_records, e.localizedMessage), Toast.LENGTH_LONG).show()
+                }
+            }
+        }
 
         if (auth.currentUser != null) {
             Log.d("LoginActivity", "Usuario ya autenticado: ${auth.currentUser?.email}")
@@ -47,7 +68,7 @@ class LoginActivity : AppCompatActivity() {
         }
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getString(R.string.default_web_client_id)) // Asegúrate de que existe en strings.xml
+            .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
 
@@ -60,27 +81,7 @@ class LoginActivity : AppCompatActivity() {
 
     private fun signIn() {
         val signInIntent = googleSignInClient.signInIntent
-        startActivityForResult(signInIntent, RC_SIGN_IN)
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        if (requestCode == RC_SIGN_IN) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                if (account != null) {
-                    firebaseAuthWithGoogle(account.idToken!!)
-                } else {
-                    Toast.makeText(this, getString(R.string.error_loading_records, "No se pudo obtener la cuenta de Google"), Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: ApiException) {
-                Log.e("LoginActivity", "Google sign in failed", e)
-                Toast.makeText(this, getString(R.string.error_loading_records, e.localizedMessage), Toast.LENGTH_LONG).show()
-            }
-        }
+        signInLauncher.launch(signInIntent)
     }
 
     private fun firebaseAuthWithGoogle(idToken: String) {
@@ -101,10 +102,10 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun checkLanguageChange() {
-        val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
-        if (prefs.getBoolean("language_changed", false)) {
+        val prefs = getSharedPreferences(com.timetracking.app.core.utils.AppConstants.PREFS_NAME, MODE_PRIVATE)
+        if (prefs.getBoolean(com.timetracking.app.core.utils.AppConstants.PREF_LANGUAGE_CHANGED, false)) {
             // Limpiar el flag
-            prefs.edit().putBoolean("language_changed", false).apply()
+            prefs.edit().putBoolean(com.timetracking.app.core.utils.AppConstants.PREF_LANGUAGE_CHANGED, false).apply()
 
             // Mostrar mensaje de confirmación
             Toast.makeText(this, getString(R.string.language_changed), Toast.LENGTH_SHORT).show()

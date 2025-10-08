@@ -26,9 +26,9 @@ abstract class AppDatabase : RoomDatabase() {
         private var INSTANCE: AppDatabase? = null
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Añadir la columna 'exported' que falta
-                database.execSQL(
+                db.execSQL(
                     "ALTER TABLE time_records ADD COLUMN exported INTEGER NOT NULL DEFAULT 0"
                 )
                 Log.i("DATABASE", "✅ MIGRACIÓN 1->2 COMPLETADA - DATOS PRESERVADOS")
@@ -36,13 +36,13 @@ abstract class AppDatabase : RoomDatabase() {
         }
 
         private val MIGRATION_2_3 = object : Migration(2, 3) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Crear tabla para balance de horas extras
-                database.execSQL(
+                db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `overtime_balance` (`id` INTEGER NOT NULL, `totalMinutes` INTEGER NOT NULL, PRIMARY KEY(`id`))"
                 )
                 // Insertar registro inicial con balance 0
-                database.execSQL("INSERT OR IGNORE INTO overtime_balance (id, totalMinutes) VALUES (1, 0)")
+                db.execSQL("INSERT OR IGNORE INTO overtime_balance (id, totalMinutes) VALUES (1, 0)")
                 Log.i("DATABASE", "✅ MIGRACIÓN 2->3 COMPLETADA - Tabla overtime_balance creada")
             }
         }

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colores para modo oscuro -->
+    <color name="primary">#ea8179</color>         <!-- Mantener el color del logo -->
+    <color name="background">#121212</color>      <!-- Fondo oscuro -->
+    <color name="ic_launcher_background">#121212</color>
+    <color name="surface">#1E1E1E</color>         <!-- Gris oscuro para cards -->
+    <color name="text_primary">#E0E0E0</color>    <!-- Texto claro -->
+    <color name="text_secondary">#A0A0A0</color>  <!-- Texto gris claro -->
+
+    <!-- Colores específicos para el botón de fichaje (se mantienen) -->
+    <color name="button_entry">#4CAF50</color>    <!-- Verde para entrada -->
+    <color name="button_exit">#F44336</color>     <!-- Rojo para salida -->
+    <color name="button_text">#FFFFFF</color>     <!-- Texto blanco para botones -->
+</resources>

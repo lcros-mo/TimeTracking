@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -63,8 +64,18 @@ class HistoryFragment : Fragment(), TimeEditBottomSheet.Callback {
     }
 
     private fun setupToolbar() {
+        // Configurar callback para manejar el botón de navegación hacia atrás
+        val callback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Remover este callback y ejecutar el comportamiento por defecto de MainActivity
+                isEnabled = false
+                requireActivity().onBackPressedDispatcher.onBackPressed()
+            }
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, callback)
+
         binding.toolbar.setNavigationOnClickListener {
-            requireActivity().onBackPressed()
+            callback.handleOnBackPressed()
         }
     }
 

@@ -57,9 +57,13 @@ android {
     buildTypes {
         debug {
             buildConfigField("String", "API_KEY", "\"$apiKey\"")
+            buildConfigField("String", "SERVER_IP", "\"80.32.125.224\"")
+            buildConfigField("int", "SERVER_PORT", "5000")
         }
         release {
             buildConfigField("String", "API_KEY", "\"$apiKey\"")
+            buildConfigField("String", "SERVER_IP", "\"80.32.125.224\"")
+            buildConfigField("int", "SERVER_PORT", "5000")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -79,6 +83,8 @@ android {
     buildFeatures {
         // Habilitar View Binding para facilitar el acceso a vistas
         viewBinding = true
+        // Habilitar BuildConfig para variables de configuración
+        buildConfig = true
     }
 }
 

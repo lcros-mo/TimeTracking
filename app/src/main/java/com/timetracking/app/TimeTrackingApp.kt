@@ -7,6 +7,7 @@ import com.google.firebase.FirebaseApp
 import com.timetracking.app.core.data.db.AppDatabase
 import com.timetracking.app.core.di.ServiceLocator
 import com.timetracking.app.core.utils.LanguageUtils
+import com.timetracking.app.core.utils.ThemeUtils
 
 class TimeTrackingApp : Application() {
 
@@ -21,6 +22,9 @@ class TimeTrackingApp : Application() {
     override fun onCreate() {
         super.onCreate()
         appContext = applicationContext
+
+        // Aplicar el tema guardado
+        ThemeUtils.applySavedTheme(this)
 
         // Inicializar Firebase
         FirebaseApp.initializeApp(this)
@@ -43,6 +47,7 @@ class TimeTrackingApp : Application() {
         val languageCode = LanguageUtils.getSelectedLanguage(this)
         val config = Configuration(newConfig)
         LanguageUtils.setLocale(config, languageCode)
-        resources.updateConfiguration(config, resources.displayMetrics)
+        // No es necesario llamar a updateConfiguration aquí
+        // El sistema actualiza automáticamente los recursos al recrear el contexto
     }
 }

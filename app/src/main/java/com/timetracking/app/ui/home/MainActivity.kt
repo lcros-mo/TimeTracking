@@ -2,7 +2,9 @@ package com.timetracking.app.ui.home
 
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -18,6 +20,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.timetracking.app.R
 import com.timetracking.app.core.di.ServiceLocator
 import com.timetracking.app.core.utils.LanguageUtils
+import com.timetracking.app.core.utils.ThemeUtils
 import com.timetracking.app.databinding.ActivityMainBinding
 import com.timetracking.app.ui.auth.LoginActivity
 import com.timetracking.app.ui.history.HistoryFragment
@@ -31,6 +34,13 @@ class MainActivity : AppCompatActivity() {
 
     private val viewModel: MainViewModel by viewModels {
         ServiceLocator.provideMainViewModelFactory(this)
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val languageCode = LanguageUtils.getSelectedLanguage(newBase)
+        val config = Configuration(newBase.resources.configuration)
+        LanguageUtils.setLocale(config, languageCode)
+        super.attachBaseContext(newBase.createConfigurationContext(config))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,7 +67,12 @@ class MainActivity : AppCompatActivity() {
                 updateButtonState(state.isCheckedIn)
 
                 state.error?.let {
-                    showToast(it)
+                    // Si el error indica estado inconsistente, mostrar diálogo especial
+                    if (it.contains("inconsistents") || it.contains("inconsistentes")) {
+                        showInconsistentStateDialog()
+                    } else {
+                        showToast(it)
+                    }
                     viewModel.clearError()
                 }
             }
@@ -96,6 +111,11 @@ class MainActivity : AppCompatActivity() {
         // Añadir listener para el botón de idioma
         binding.languageButton.setOnClickListener {
             showLanguageDialog()
+        }
+
+        // Añadir listener para el botón de tema
+        binding.themeButton.setOnClickListener {
+            showThemeDialog()
         }
     }
 
@@ -147,7 +167,7 @@ class MainActivity : AppCompatActivity() {
         FirebaseAuth.getInstance().signOut()
 
         // Limpiar preferencias de autenticación
-        getSharedPreferences("auth_prefs", MODE_PRIVATE).edit().clear().apply()
+        getSharedPreferences(com.timetracking.app.core.utils.AppConstants.PREFS_NAME, MODE_PRIVATE).edit().clear().apply()
 
         showToast(getString(R.string.logout_success))
 
@@ -164,6 +184,21 @@ class MainActivity : AppCompatActivity() {
             setGravity(Gravity.CENTER, 0, 0)
             show()
         }
+    }
+
+    /**
+     * Muestra diálogo especial para estado inconsistente
+     */
+    private fun showInconsistentStateDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.inconsistent_state_title)
+            .setMessage(R.string.inconsistent_state_message)
+            .setPositiveButton(R.string.go_to_history) { _, _ ->
+                navigateToHistory()
+            }
+            .setNegativeButton(R.string.dismiss, null)
+            .setCancelable(false)
+            .show()
     }
 
     /**
@@ -224,5 +259,47 @@ class MainActivity : AppCompatActivity() {
             }
             .setCancelable(false)
             .show()
+    }
+
+    /**
+     * Muestra el diálogo de selección de tema
+     */
+    private fun showThemeDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_theme_selector, null)
+        val radioGroup = dialogView.findViewById<RadioGroup>(R.id.themeRadioGroup)
+        val lightRadio = dialogView.findViewById<RadioButton>(R.id.lightRadioButton)
+        val darkRadio = dialogView.findViewById<RadioButton>(R.id.darkRadioButton)
+        val systemRadio = dialogView.findViewById<RadioButton>(R.id.systemRadioButton)
+
+        // Seleccionar el tema actual
+        val currentTheme = ThemeUtils.getSelectedTheme(this)
+        when (currentTheme) {
+            ThemeUtils.THEME_LIGHT -> lightRadio.isChecked = true
+            ThemeUtils.THEME_DARK -> darkRadio.isChecked = true
+            ThemeUtils.THEME_SYSTEM -> systemRadio.isChecked = true
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                // Guardar el tema seleccionado
+                val themeCode = when (radioGroup.checkedRadioButtonId) {
+                    R.id.lightRadioButton -> ThemeUtils.THEME_LIGHT
+                    R.id.darkRadioButton -> ThemeUtils.THEME_DARK
+                    R.id.systemRadioButton -> ThemeUtils.THEME_SYSTEM
+                    else -> ThemeUtils.THEME_SYSTEM
+                }
+
+                // Si el tema ha cambiado, guardarlo y aplicarlo
+                if (themeCode != currentTheme) {
+                    ThemeUtils.saveTheme(this, themeCode)
+                    ThemeUtils.applyTheme(themeCode)
+                    showToast(getString(R.string.theme_changed))
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+
+        dialog.show()
     }
 }

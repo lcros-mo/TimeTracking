@@ -79,7 +79,7 @@ class TimeRecordRepository(private val timeRecordDao: TimeRecordDao, private val
 
     suspend fun addToOvertimeBalance(weeklyMinutes: Long) {
         // Calcular diferencia contra 37.5h (2250 minutos)
-        val overtimeMinutes = weeklyMinutes - 2250L // 37.5h * 60min
+        val overtimeMinutes = weeklyMinutes - com.timetracking.app.core.utils.AppConstants.WEEKLY_BASELINE_MINUTES
 
         val currentBalance = getOvertimeBalance()
         val newBalance = OvertimeBalance(id = 1, totalMinutes = currentBalance + overtimeMinutes)

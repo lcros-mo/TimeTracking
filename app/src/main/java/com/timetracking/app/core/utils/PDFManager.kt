@@ -14,6 +14,7 @@ import com.itextpdf.layout.Document
 import com.itextpdf.layout.element.Paragraph
 import com.itextpdf.layout.element.Table
 import com.itextpdf.layout.properties.TextAlignment
+import com.timetracking.app.BuildConfig
 import com.timetracking.app.core.data.model.RecordType
 import com.timetracking.app.core.data.model.TimeRecord
 import com.timetracking.app.core.data.model.TimeRecordBlock
@@ -24,7 +25,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.create
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -55,12 +56,12 @@ data class RecordInfo(
 }
 
 object ServerConfig {
-    private const val SERVER_IP = "80.32.125.224"
-    private const val SERVER_PORT = 5000
-    const val SERVER_URL_BASE = "https://$SERVER_IP:$SERVER_PORT"
-    const val SERVER_URL_UPLOAD = "$SERVER_URL_BASE/upload"
-    const val SERVER_URL_CHECK_FILE = "$SERVER_URL_BASE/files/check"
-    const val SERVER_URL_DOWNLOAD = "$SERVER_URL_BASE/files/download"
+    private val SERVER_IP = BuildConfig.SERVER_IP
+    private val SERVER_PORT = BuildConfig.SERVER_PORT
+    val SERVER_URL_BASE = "https://$SERVER_IP:$SERVER_PORT"
+    val SERVER_URL_UPLOAD = "$SERVER_URL_BASE/upload"
+    val SERVER_URL_CHECK_FILE = "$SERVER_URL_BASE/files/check"
+    val SERVER_URL_DOWNLOAD = "$SERVER_URL_BASE/files/download"
 }
 
 class PDFManager(private val context: Context) {
@@ -475,7 +476,7 @@ class PDFManager(private val context: Context) {
             .addFormDataPart(
                 "file",
                 fileName,
-                create("application/pdf".toMediaTypeOrNull(), pdfData)
+                pdfData.toRequestBody("application/pdf".toMediaTypeOrNull())
             )
             .build()
 

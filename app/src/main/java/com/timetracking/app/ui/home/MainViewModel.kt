@@ -1,5 +1,6 @@
 package com.timetracking.app.ui.home
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -16,6 +17,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.*
 
 /**
@@ -56,6 +59,13 @@ data class TimeStats(
  * y proporciona datos para la UI.
  */
 class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() {
+
+    companion object {
+        private const val TAG = "MainViewModel"
+    }
+
+    // Mutex para prevenir race conditions en handleCheckInOut
+    private val checkInOutMutex = Mutex()
 
     // Estados UI
     private val _uiState = MutableStateFlow(MainUiState())
@@ -98,26 +108,47 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
 
     /**
      * Carga el último estado de fichaje
+     * MEJORADO: Valida consistencia de registros del día
      */
     fun loadLastState() {
         viewModelScope.launch {
             try {
+                Log.d(TAG, "Cargando último estado...")
                 val todayRecords = repository.getDayRecords(DateTimeUtils.truncateToDay(Date()))
                 val record = repository.getLastRecord()
                 _lastRecord.value = record
 
-                // Verificar estado basado en registros
+                // Verificar estado basado en registros DEL DÍA
                 if (todayRecords.isEmpty()) {
+                    Log.d(TAG, "No hay registros hoy, estado: desconectado")
                     _uiState.value = _uiState.value.copy(
                         isCheckedIn = false,
                         checkInTime = null,
                         lastCheckText = TimeTrackingApp.appContext.getString(R.string.no_records)
+                    )
+                    updateTodayTime()
+                    updateWeeklyTime()
+                    updateOvertimeBalance()
+                    return@launch
+                }
+
+                // NUEVA VALIDACIÓN: Verificar consistencia antes de determinar estado
+                val (isConsistent, _, errorMsg) = TimeRecordValidator.validateNextAction(todayRecords)
+                if (!isConsistent) {
+                    Log.e(TAG, "Estado inconsistente detectado: $errorMsg")
+                    _uiState.value = _uiState.value.copy(
+                        isCheckedIn = false,
+                        checkInTime = null,
+                        lastCheckText = "⚠️ Registros inconsistentes",
+                        error = errorMsg
                     )
                     return@launch
                 }
 
                 val sortedRecords = todayRecords.sortedBy { it.date }
                 val lastRecord = sortedRecords.last()
+
+                Log.d(TAG, "Último registro del día: ${lastRecord.type} a las ${formatTime(lastRecord.date)}")
 
                 val lastCheckText = if (lastRecord.type == RecordType.CHECK_IN) {
                     TimeTrackingApp.appContext.getString(R.string.last_check_in, formatTime(lastRecord.date))
@@ -135,6 +166,7 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
                 updateWeeklyTime()
                 updateOvertimeBalance()
             } catch (e: Exception) {
+                Log.e(TAG, "Error cargando último estado", e)
                 _uiState.value = _uiState.value.copy(
                     error = TimeTrackingApp.appContext.getString(R.string.error_loading_last_state, e.message)
                 )
@@ -144,33 +176,46 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
 
     /**
      * Gestiona la acción de fichar entrada o salida
+     * MEJORADO: Usa Mutex para prevenir race conditions
      */
     fun handleCheckInOut() {
-        val currentTime = Date()
-
         viewModelScope.launch {
+            // CRÍTICO: Usar mutex para evitar que múltiples clics causen registros duplicados
+            if (!checkInOutMutex.tryLock()) {
+                Log.w(TAG, "handleCheckInOut ya en ejecución, ignorando clic duplicado")
+                return@launch
+            }
+
             try {
+                Log.d(TAG, "=== Iniciando handleCheckInOut ===")
+                val currentTime = Date()
+
                 // Obtener todos los registros del día
                 val todayRecords = repository.getDayRecords(DateTimeUtils.truncateToDay(Date()))
+                Log.d(TAG, "Registros encontrados hoy: ${todayRecords.size}")
 
                 // Validar la acción a realizar
                 val (isValid, recordType, errorMessage) = TimeRecordValidator.validateNextAction(todayRecords)
 
                 if (!isValid) {
+                    Log.e(TAG, "Validación falló: $errorMessage")
                     _uiState.value = _uiState.value.copy(error = errorMessage)
                     return@launch
                 }
 
                 when (recordType) {
                     RecordType.CHECK_IN -> {
+                        Log.d(TAG, "Insertando CHECK_IN")
                         repository.insertRecord(currentTime, RecordType.CHECK_IN)
                         _uiState.value = _uiState.value.copy(
                             isCheckedIn = true,
                             checkInTime = currentTime,
                             lastCheckText = TimeTrackingApp.appContext.getString(R.string.last_check_in, formatTime(currentTime))
                         )
+                        Log.d(TAG, "CHECK_IN insertado exitosamente")
                     }
                     RecordType.CHECK_OUT -> {
+                        Log.d(TAG, "Preparando CHECK_OUT")
                         // Validar que la salida sea posterior a la entrada
                         val lastCheckIn = todayRecords.filter { it.type == RecordType.CHECK_IN }
                             .maxByOrNull { it.date }
@@ -185,19 +230,23 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
                             )
 
                             if (!timeValid) {
+                                Log.w(TAG, "Validación de tiempo falló: $timeErrorMsg")
                                 _uiState.value = _uiState.value.copy(error = timeErrorMsg)
                                 return@launch
                             }
                         }
 
+                        Log.d(TAG, "Insertando CHECK_OUT")
                         repository.insertRecord(currentTime, RecordType.CHECK_OUT)
                         _uiState.value = _uiState.value.copy(
                             isCheckedIn = false,
                             checkInTime = null,
                             lastCheckText = TimeTrackingApp.appContext.getString(R.string.last_check_out, formatTime(currentTime))
                         )
+                        Log.d(TAG, "CHECK_OUT insertado exitosamente")
                     }
                     null -> {
+                        Log.e(TAG, "recordType es null - no debería pasar")
                         _uiState.value = _uiState.value.copy(
                             error = TimeTrackingApp.appContext.getString(R.string.error_determine_action)
                         )
@@ -205,13 +254,18 @@ class MainViewModel(private val repository: TimeRecordRepository) : ViewModel() 
                     }
                 }
 
+                // Actualizar métricas
                 updateTodayTime()
                 updateWeeklyTime()
                 updateOvertimeBalance()
+                Log.d(TAG, "=== handleCheckInOut completado ===")
             } catch (e: Exception) {
+                Log.e(TAG, "Error en handleCheckInOut", e)
                 _uiState.value = _uiState.value.copy(
                     error = TimeTrackingApp.appContext.getString(R.string.error_processing_check, e.message)
                 )
+            } finally {
+                checkInOutMutex.unlock()
             }
         }
     }

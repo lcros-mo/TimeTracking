@@ -17,6 +17,7 @@
     <string name="sign_in_with_google">Iniciar sessió amb Google</string>
     <string name="app_logo_content_description">Logo de l\'aplicació</string>
     <string name="change_language">Canviar idioma</string>
+    <string name="change_theme">Canviar tema</string>
 
     <!-- Pantalla principal -->
     <string name="welcome">Benvingut/da</string>
@@ -103,10 +104,25 @@
     <string name="restart_required">Cal reiniciar l\'aplicació per aplicar el nou idioma.</string>
     <string name="restart_now">Reiniciar ara</string>
 
+    <!-- Selector de tema -->
+    <string name="select_theme">Seleccionar tema</string>
+    <string name="theme_light">Clar</string>
+    <string name="theme_dark">Fosc</string>
+    <string name="theme_system">Sistema</string>
+    <string name="theme_changed">Tema aplicat</string>
+
     <!-- Dialog de login -->
     <string name="login_title">Iniciar sessió</string>
     <string name="login_subtitle">Introdueix el teu correu institucional per accedir</string>
     <string name="email">Correu electrònic</string>
     <string name="login">Iniciar sessió</string>
     <string name="error_calculating_balance">Error al calcular balance: %1$s</string>
+
+    <!-- Errores de validación y estado inconsistente -->
+    <string name="error_inconsistent_records">Els registres del dia són inconsistents (registre #%1$d). Necessites arreglar-los manualment des de l\'historial.</string>
+    <string name="fix_records">Arreglar registres</string>
+    <string name="inconsistent_state_title">Estat Inconsistent Detectat</string>
+    <string name="inconsistent_state_message">S\'han detectat registres inconsistents al sistema. Això pot passar si l\'aplicació es va tancar inesperadament.\n\nVols anar a l\'historial per revisar i corregir els registres?</string>
+    <string name="go_to_history">Anar a l\'historial</string>
+    <string name="dismiss">Ignorar</string>
 </resources>

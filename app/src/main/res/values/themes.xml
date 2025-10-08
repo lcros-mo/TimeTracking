@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.TimeTracking" parent="Theme.MaterialComponents.Light.NoActionBar">
+    <style name="Theme.TimeTracking" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Colores principales -->
         <item name="colorPrimary">@color/primary</item>
         <item name="android:windowBackground">@color/background</item>

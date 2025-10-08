@@ -15,23 +15,26 @@ import java.util.*
  */
 class LanguageUtils {
     companion object {
-        private const val LANGUAGE_PREFERENCE = "language_preference"
-        private const val DEFAULT_LANGUAGE = ""  // Idioma del sistema
+        private const val DEFAULT_LANGUAGE = "ca"  // Catalán por defecto
+
+        private fun getPreferences(context: Context) =
+            context.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
 
         /**
          * Guarda el idioma seleccionado en las preferencias
          */
         fun saveLanguage(context: Context, languageCode: String) {
-            val preferences = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
-            preferences.edit().putString(LANGUAGE_PREFERENCE, languageCode).apply()
+            getPreferences(context).edit()
+                .putString(AppConstants.PREF_LANGUAGE, languageCode)
+                .apply()
         }
 
         /**
          * Obtiene el idioma guardado en las preferencias
          */
         fun getSelectedLanguage(context: Context): String {
-            val preferences = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
-            return preferences.getString(LANGUAGE_PREFERENCE, DEFAULT_LANGUAGE) ?: DEFAULT_LANGUAGE
+            return getPreferences(context)
+                .getString(AppConstants.PREF_LANGUAGE, DEFAULT_LANGUAGE) ?: DEFAULT_LANGUAGE
         }
 
         /**
@@ -66,9 +69,9 @@ class LanguageUtils {
             )
 
             // Guardar que necesitamos aplicar el idioma
-            activity.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+            getPreferences(activity)
                 .edit()
-                .putBoolean("language_changed", true)
+                .putBoolean(AppConstants.PREF_LANGUAGE_CHANGED, true)
                 .apply()
 
             activity.startActivity(intent)
