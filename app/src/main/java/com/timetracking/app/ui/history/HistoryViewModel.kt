@@ -64,7 +64,6 @@ class HistoryViewModel(
     /**
      * Carga las semanas que tienen registros NO EXPORTADOS
      */
-    // En HistoryViewModel.kt - método loadAvailableWeeks() líneas 46-76
     fun loadAvailableWeeks() {
         viewModelScope.launch {
             try {
@@ -75,13 +74,15 @@ class HistoryViewModel(
                 val calendar = Calendar.getInstance()
                 val weeksWithRecords = mutableListOf<WeekData>()
 
-                for (i in 0 until 4) {
+                // Buscar hacia atrás desde hoy hasta encontrar todas las semanas con registros no exportados
+                // Límite de seguridad: 260 semanas (5 años)
+                val maxWeeksToSearch = 260
+
+                for (i in 0 until maxWeeksToSearch) {
                     val weekStart = DateTimeUtils.getStartOfWeek(calendar.time)
 
                     if (weekStart.time <= currentWeekStart.time) {
                         val records = repository.getRecordsForWeek(weekStart)
-
-                        // 👈 MEJORAR LÓGICA: Solo semanas con registros NO exportados
                         val hasNonExportedRecords = records.any { !it.exported }
 
                         if (hasNonExportedRecords) {
@@ -92,15 +93,20 @@ class HistoryViewModel(
 
                             val dateFormat = SimpleDateFormat("dd", Locale.getDefault())
                             val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
+                            val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
 
-                            val displayText = "${dateFormat.format(weekStart)}-${dateFormat.format(endOfWeek)} ${monthFormat.format(endOfWeek)}"
+                            val displayText = "${dateFormat.format(weekStart)}-${dateFormat.format(endOfWeek)} ${monthFormat.format(endOfWeek)} ${yearFormat.format(endOfWeek)}"
 
                             weeksWithRecords.add(0, WeekData(weekStart, displayText))
+
+                            android.util.Log.d("HistoryViewModel", "Semana encontrada: $displayText con ${records.size} registros")
                         }
                     }
 
                     calendar.add(Calendar.WEEK_OF_YEAR, -1)
                 }
+
+                android.util.Log.d("HistoryViewModel", "Total semanas encontradas: ${weeksWithRecords.size}")
 
                 _availableWeeks.value = weeksWithRecords
 
@@ -112,11 +118,11 @@ class HistoryViewModel(
                     )
                     loadWeekRecords(mostRecentWeek.startDate)
                 } else {
-                    // 👈 CUANDO NO HAY SEMANAS, LIMPIAR VISTA
                     _timeBlocks.value = emptyList()
                     _uiState.value = _uiState.value.copy(isLoading = false)
                 }
             } catch (e: Exception) {
+                android.util.Log.e("HistoryViewModel", "Error cargando semanas", e)
                 _uiState.value = _uiState.value.copy(
                     error = "Error al cargar semanas: ${e.message}",
                     isLoading = false

@@ -162,42 +162,53 @@ class AddRecordDialog : BottomSheetDialogFragment() {
     }
 
     private fun saveRecords() {
-        // Combinar fecha con hora de entrada
-        val checkInDateTime = Calendar.getInstance().apply {
-            set(
-                selectedDate.get(Calendar.YEAR),
-                selectedDate.get(Calendar.MONTH),
-                selectedDate.get(Calendar.DAY_OF_MONTH),
-                selectedCheckInTime.get(Calendar.HOUR_OF_DAY),
-                selectedCheckInTime.get(Calendar.MINUTE),
-                0
-            )
-        }.time
-
-        // Combinar fecha con hora de salida
-        val checkOutDateTime = Calendar.getInstance().apply {
-            set(
-                selectedDate.get(Calendar.YEAR),
-                selectedDate.get(Calendar.MONTH),
-                selectedDate.get(Calendar.DAY_OF_MONTH),
-                selectedCheckOutTime.get(Calendar.HOUR_OF_DAY),
-                selectedCheckOutTime.get(Calendar.MINUTE),
-                0
-            )
-        }.time
-
         lifecycleScope.launch {
             try {
+                // Combinar fecha con hora de entrada
+                val checkInDateTime = Calendar.getInstance().apply {
+                    set(
+                        selectedDate.get(Calendar.YEAR),
+                        selectedDate.get(Calendar.MONTH),
+                        selectedDate.get(Calendar.DAY_OF_MONTH),
+                        selectedCheckInTime.get(Calendar.HOUR_OF_DAY),
+                        selectedCheckInTime.get(Calendar.MINUTE),
+                        0
+                    )
+                    set(Calendar.MILLISECOND, 0)
+                }.time
+
+                // Combinar fecha con hora de salida
+                val checkOutDateTime = Calendar.getInstance().apply {
+                    set(
+                        selectedDate.get(Calendar.YEAR),
+                        selectedDate.get(Calendar.MONTH),
+                        selectedDate.get(Calendar.DAY_OF_MONTH),
+                        selectedCheckOutTime.get(Calendar.HOUR_OF_DAY),
+                        selectedCheckOutTime.get(Calendar.MINUTE),
+                        0
+                    )
+                    set(Calendar.MILLISECOND, 0)
+                }.time
+
+                // Log para depurar
+                android.util.Log.d("AddRecordDialog", "Guardando entrada: $checkInDateTime")
+                android.util.Log.d("AddRecordDialog", "Guardando salida: $checkOutDateTime")
+
                 // Crear registro de entrada
-                repository.insertRecord(checkInDateTime, RecordType.CHECK_IN)
+                val checkInId = repository.insertRecord(checkInDateTime, RecordType.CHECK_IN)
+                android.util.Log.d("AddRecordDialog", "Entrada guardada con ID: $checkInId")
 
                 // Crear registro de salida
-                repository.insertRecord(checkOutDateTime, RecordType.CHECK_OUT)
+                val checkOutId = repository.insertRecord(checkOutDateTime, RecordType.CHECK_OUT)
+                android.util.Log.d("AddRecordDialog", "Salida guardada con ID: $checkOutId")
+
+                Toast.makeText(context, getString(R.string.record_added), Toast.LENGTH_SHORT).show()
 
                 callback?.onRecordAdded()
                 dismiss()
             } catch (e: Exception) {
-                Toast.makeText(context, getString(R.string.error_adding_record, e.message), Toast.LENGTH_SHORT).show()
+                android.util.Log.e("AddRecordDialog", "Error guardando registros", e)
+                Toast.makeText(context, getString(R.string.error_adding_record, e.message), Toast.LENGTH_LONG).show()
             }
         }
     }
